@@ -56,7 +56,8 @@ struct AddItemView: View {
                                     .resizable()
                                     .scaledToFit()
                                     .frame(maxHeight: 300)
-                                    .cornerRadius(8)
+                                    .frame(maxWidth: .infinity)
+                                    .background(Color(.systemGray6)) // Nice background for transparent images
                                 
                                 if isProcessingImage {
                                     ZStack {
@@ -77,9 +78,9 @@ struct AddItemView: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 200)
                             .background(Color(.systemGray6))
-                            .cornerRadius(12)
                         }
                     }
+                    .buttonStyle(PlainButtonStyle()) // Ensure the whole area is clickable without standard cell style interference
                     .onChange(of: selectedItem) {
                         Task {
                             if let data = try? await selectedItem?.loadTransferable(type: Data.self) {
@@ -91,10 +92,14 @@ struct AddItemView: View {
                             }
                         }
                     }
-                    
-                    if selectedImageData != nil {
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
+                
+                if selectedImageData != nil {
+                    Section {
                         Toggle(isOn: $isBackgroundRemoved) {
-                            Label("Remove Background", systemImage: "wand.and.stars")
+                            Text("Remove Background")
                         }
                         .disabled(isProcessingImage)
                         .onChange(of: isBackgroundRemoved) {
@@ -119,8 +124,6 @@ struct AddItemView: View {
                         }
                     }
                 }
-                .listRowBackground(Color.clear)
-                .listRowInsets(EdgeInsets())
                 
                 // Section 2: Basic Info
                 Section("Category") {

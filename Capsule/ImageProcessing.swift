@@ -15,8 +15,14 @@ struct ImageProcessing {
     /// Returns the PNG data of the image with a transparent background.
     static func removeBackground(from imageData: Data?) async -> Data? {
         guard let imageData = imageData,
-              let inputImage = UIImage(data: imageData),
-              let cgImage = inputImage.cgImage else {
+              let sourceImage = UIImage(data: imageData) else {
+            return nil
+        }
+        
+        // Fix orientation before processing
+        let inputImage = fixOrientation(of: sourceImage)
+        
+        guard let cgImage = inputImage.cgImage else {
             return nil
         }
         
@@ -36,9 +42,6 @@ struct ImageProcessing {
                 
                 let ciImage = CIImage(cvPixelBuffer: maskPixelBuffer)
                 
-                // The result from Vision is the masked image directly if using generateMaskedImage,
-                // mostly usually it returns the image with alpha channel.
-                
                 let context = CIContext()
                 guard let cgOutput = context.createCGImage(ciImage, from: ciImage.extent) else {
                     return nil
@@ -52,10 +55,20 @@ struct ImageProcessing {
                 return nil
             }
         } else {
-            // Fallback for older iOS versions (simple Center or just return original)
-            // Ideally we shouldn't be here if we target iOS 17
             print("Background removal requires iOS 17+")
             return imageData
         }
+    }
+
+    /// Normalizes the image orientation to .up
+    private static func fixOrientation(of image: UIImage) -> UIImage {
+        if image.imageOrientation == .up { return image }
+        
+        UIGraphicsBeginImageContextWithOptions(image.size, false, image.scale)
+        image.draw(in: CGRect(origin: .zero, size: image.size))
+        let normalizedImage = UIGraphicsGetImageFromCurrentImageContext()
+        UIGraphicsEndImageContext()
+        
+        return normalizedImage ?? image
     }
 }
