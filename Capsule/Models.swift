@@ -89,7 +89,6 @@ enum ClothingColor: String, CaseIterable, Identifiable {
     case pink = "Pink"
     case gold = "Gold"
     case silver = "Silver"
-    case multi = "Multicolor"
     
     var id: String { rawValue }
     
@@ -113,7 +112,6 @@ enum ClothingColor: String, CaseIterable, Identifiable {
         case .pink: return .pink
         case .gold: return Color(red: 1, green: 0.84, blue: 0)
         case .silver: return Color(red: 0.75, green: 0.75, blue: 0.75)
-        case .multi: return .clear
         }
     }
 }

@@ -20,7 +20,7 @@ struct AddItemView: View {
     // MARK: - Form State
     @State private var mainCategory: MainCategory = .top
     @State private var subCategory: String = ""
-    @State private var selectedColor: ClothingColor = .black
+    @State private var selectedColors: Set<ClothingColor> = []
     @State private var brand: String = ""
     @State private var size: String = ""
     @State private var materialComposition: String = ""
@@ -96,37 +96,30 @@ struct AddItemView: View {
                 
                 // Section 3: Color
                 Section("Color") {
-                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 44))], spacing: 10) {
-                        ForEach(ClothingColor.allCases) { color in
-                            ZStack {
-                                Circle()
-                                    .fill(color.color)
-                                    .frame(width: 44, height: 44)
-                                    .overlay(
-                                        Circle()
-                                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
-                                    )
-                                    
-                                if (color == .multi) {
-                                  Image(systemName: "paintpalette.fill")
-                                        .font(.caption)
-                                        .foregroundStyle(.secondary)
+                    NavigationLink {
+                        ColorSelectionView(selectedColors: $selectedColors)
+                    } label: {
+                        HStack {
+                            Text("Colors")
+                            Spacer()
+                            if selectedColors.isEmpty {
+                                Text("None")
+                                    .foregroundStyle(.secondary)
+                            } else {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 4) {
+                                        ForEach(Array(selectedColors).sorted(by: { $0.rawValue < $1.rawValue }), id: \.self) { color in
+                                            Circle()
+                                                .fill(color.color)
+                                                .frame(width: 20, height: 20)
+                                                .overlay(Circle().stroke(Color.gray.opacity(0.2)))
+                                        }
+                                    }
                                 }
-                                
-                                if selectedColor == color {
-                                    Image(systemName: "checkmark")
-                                        .foregroundStyle(color == .white || color == .beige || color == .yellow || color == .gold || color == .silver ? .black : .white)
-                                }
-                            }
-                            .onTapGesture {
-                                selectedColor = color
+                                .frame(maxWidth: 150, alignment: .trailing)
                             }
                         }
                     }
-                    .padding(.vertical, 8)
-                    Text("Selected: \(selectedColor.rawValue)")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
                 }
                 
                 // Section 4: Details
@@ -217,7 +210,7 @@ struct AddItemView: View {
             subCategory: subCategory,
             brand: brand.isEmpty ? nil : brand,
             size: size.isEmpty ? nil : size,
-            colors: [selectedColor.rawValue],
+            colors: selectedColors.map { $0.rawValue },
             materialComposition: materialComposition.isEmpty ? nil : materialComposition,
             seasons: selectedSeasons,
             price: price,
@@ -237,4 +230,39 @@ struct AddItemView: View {
 #Preview {
     AddItemView()
         .modelContainer(for: ClothingItem.self, inMemory: true)
+}
+
+struct ColorSelectionView: View {
+    @Binding var selectedColors: Set<ClothingColor>
+    
+    var body: some View {
+        List {
+            ForEach(ClothingColor.allCases) { color in
+                HStack {
+                    Circle()
+                        .fill(color.color)
+                        .frame(width: 24, height: 24)
+                        .overlay(Circle().stroke(Color.gray.opacity(0.3)))
+                    
+                    Text(color.rawValue)
+                    
+                    Spacer()
+                    
+                    if selectedColors.contains(color) {
+                        Image(systemName: "checkmark")
+                            .foregroundStyle(.blue)
+                    }
+                }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    if selectedColors.contains(color) {
+                        selectedColors.remove(color)
+                    } else {
+                        selectedColors.insert(color)
+                    }
+                }
+            }
+        }
+        .navigationTitle("Select Colors")
+    }
 }
