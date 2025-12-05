@@ -9,51 +9,22 @@ import SwiftUI
 import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [ClothingItem]
-
     var body: some View {
-        NavigationStack {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item Details: \(item.subCategory)")
-                    } label: {
-                        Text(item.subCategory.isEmpty ? item.mainCategory.rawValue : item.subCategory)
-                    }
+        TabView {
+            WardrobeView()
+                .tabItem {
+                    Label("Wardrobe", systemImage: "cabinet")
                 }
-                .onDelete(perform: deleteItems)
-            }
-            .navigationTitle("Wardrobe")
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
+            
+            CalendarView()
+                .tabItem {
+                    Label("Calendar", systemImage: "calendar")
                 }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
+            
+            StatsView()
+                .tabItem {
+                    Label("Stats", systemImage: "chart.bar")
                 }
-            }
-        }
-    }
-
-    private func addItem() {
-        withAnimation {
-            let newItem = ClothingItem(
-                mainCategory: .top,
-                subCategory: "New Item",
-                colors: ["#000000"]
-            )
-            modelContext.insert(newItem)
-        }
-    }
-
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
-            }
         }
     }
 }
