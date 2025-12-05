@@ -17,9 +17,14 @@ struct AddItemView: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImageData: Data?
     @State private var originalImageData: Data?
+    @State private var bgRemovedImageData: Data? // Cache for the full BG-removed image
     @State private var isBackgroundRemoved: Bool = false
     @State private var isProcessingImage: Bool = false
     @State private var isShowingEditor: Bool = false
+    
+    // Editor State
+    @State private var currentCropScale: CGFloat = 1.0
+    @State private var currentCropOffset: CGSize = .zero
     
     // MARK: - Form State
     @State private var mainCategory: MainCategory = .top
@@ -111,7 +116,11 @@ struct AddItemView: View {
                             withAnimation {
                                 selectedImageData = data
                                 originalImageData = data
-                                isBackgroundRemoved = false // Reset toggle on new image
+                                bgRemovedImageData = nil // Reset cached BG removed
+                                isBackgroundRemoved = false // Reset toggle
+                                // Reset crop
+                                currentCropScale = 1.0
+                                currentCropOffset = .zero
                             }
                         }
                     }
@@ -126,19 +135,38 @@ struct AddItemView: View {
                         .onChange(of: isBackgroundRemoved) {
                             Task {
                                 if isBackgroundRemoved {
-                                    guard let original = originalImageData else { return }
-                                    isProcessingImage = true
-                                    let processed = await ImageProcessing.removeBackground(from: original)
-                                    withAnimation {
-                                        if let processed {
-                                            selectedImageData = processed
+                                    // Switch to BG Removed
+                                    if let cached = bgRemovedImageData {
+                                        // Already have it
+                                        withAnimation {
+                                            selectedImageData = cached
+                                            // Reset crop when switching modes to be safe
+                                            currentCropScale = 1.0
+                                            currentCropOffset = .zero
                                         }
-                                        isProcessingImage = false
+                                    } else {
+                                        // Need to process
+                                        guard let original = originalImageData else { return }
+                                        isProcessingImage = true
+                                        let processed = await ImageProcessing.removeBackground(from: original)
+                                        withAnimation {
+                                            if let processed {
+                                                bgRemovedImageData = processed
+                                                selectedImageData = processed
+                                                // Reset crop
+                                                currentCropScale = 1.0
+                                                currentCropOffset = .zero
+                                            }
+                                            isProcessingImage = false
+                                        }
                                     }
                                 } else {
-                                    // Revert
+                                    // Revert to Original
                                     withAnimation {
                                         selectedImageData = originalImageData
+                                        // Reset crop
+                                        currentCropScale = 1.0
+                                        currentCropOffset = .zero
                                     }
                                 }
                             }
@@ -372,17 +400,23 @@ struct AddItemView: View {
             .scrollDismissesKeyboard(.interactively)
         }
         .sheet(isPresented: $isShowingEditor) {
-            if let imageDataToEdit = selectedImageData, let uiImage = UIImage(data: imageDataToEdit) {
-                ImageEditorView(inputImage: uiImage) { editedImage in
+            // Determine which base image to edit (Original or BG Removed)
+            // This ensures we always start with the full image, allowing non-destructive zoom/pan
+            let baseData = isBackgroundRemoved ? bgRemovedImageData : originalImageData
+            
+            if let baseData, let uiImage = UIImage(data: baseData) {
+                ImageEditorView(
+                    inputImage: uiImage,
+                    initialScale: currentCropScale,
+                    initialOffset: currentCropOffset
+                ) { editedImage, newScale, newOffset in
                     withAnimation {
                         if let data = editedImage.pngData() {
+                            // Update the display image
                             selectedImageData = data
-                            // If we edited the original, update original too so toggle keeps sync?
-                            // No, if BG is removed, we are editing the result. Original stays as "Raw".
-                            // If user turns off BG removal, they go back to Raw.
-                            if !isBackgroundRemoved {
-                                originalImageData = data
-                            }
+                            // Persist the crop parameters so we can "resume" editing later
+                            currentCropScale = newScale
+                            currentCropOffset = newOffset
                         }
                     }
                 }

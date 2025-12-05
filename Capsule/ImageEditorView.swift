@@ -125,5 +125,9 @@ struct ImageEditorView: View {
 }
 
 #Preview {
-    ImageEditorView(inputImage: UIImage(systemName: "tshirt")!) { _ in }
+    ImageEditorView(
+        inputImage: UIImage(systemName: "tshirt")!,
+        initialScale: 1.0,
+        initialOffset: .zero
+    ) { _, _, _ in }
 }
