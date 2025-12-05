@@ -144,7 +144,9 @@ enum CareIroning: String, Codable, CaseIterable, Identifiable {
     
     var icon: String {
         switch self {
-        case .low, .medium, .high: return "iron.bottom"
+        case .low: return "thermometer.low"
+        case .medium: return "thermometer.medium"
+        case .high: return "thermometer.high"
         case .noSteam: return "drop.slash"
         case .no: return "xmark.circle"
         }

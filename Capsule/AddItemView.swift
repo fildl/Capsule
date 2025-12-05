@@ -28,6 +28,8 @@ struct AddItemView: View {
     @State private var purchaseStatus: PurchaseStatus = .new
     @State private var purchaseLocation: String = ""
     @State private var purchaseUrlString: String = ""
+    @State private var addPurchaseDate: Bool = false
+    @State private var purchaseDate: Date = Date()
     @State private var washingMethod: CareWashingMethod = .machine
     @State private var washingTemperature: CareTemperature = .warm30
     @State private var bleaching: CareBleaching = .dontBleach
@@ -223,16 +225,18 @@ struct AddItemView: View {
                         .keyboardType(.URL)
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
+                    
+                    Toggle("Add Date", isOn: $addPurchaseDate.animation())
+                    
+                    if addPurchaseDate {
+                        DatePicker("Date", selection: $purchaseDate, displayedComponents: .date)
+                    }
                 }
                 
-                // Section 5: Care
-                Section("Care Instructions") {
+                Section("Care Details") {
                     Picker("Washing", selection: $washingMethod) {
                         ForEach(CareWashingMethod.allCases) { method in
-                            HStack {
-                                Image(systemName: method.icon)
-                                Text(method.rawValue)
-                            }.tag(method)
+                            Label(method.rawValue, systemImage: method.icon).tag(method)
                         }
                     }
                     
@@ -246,28 +250,19 @@ struct AddItemView: View {
                     
                     Picker("Bleaching", selection: $bleaching) {
                         ForEach(CareBleaching.allCases) { option in
-                            HStack {
-                                Image(systemName: option.icon)
-                                Text(option.rawValue)
-                            }.tag(option)
+                            Label(option.rawValue, systemImage: option.icon).tag(option)
                         }
                     }
                     
                     Picker("Drying", selection: $drying) {
                         ForEach(CareDrying.allCases) { option in
-                            HStack {
-                                Image(systemName: option.icon)
-                                Text(option.rawValue)
-                            }.tag(option)
+                            Label(option.rawValue, systemImage: option.icon).tag(option)
                         }
                     }
                     
                     Picker("Ironing", selection: $ironing) {
                         ForEach(CareIroning.allCases) { option in
-                            HStack {
-                                Image(systemName: option.icon)
-                                Text(option.rawValue)
-                            }.tag(option)
+                            Label(option.rawValue, systemImage: option.icon).tag(option)
                         }
                     }
                     
@@ -332,6 +327,7 @@ struct AddItemView: View {
             purchaseStatus: purchaseStatus,
             purchaseLocation: purchaseLocation.isEmpty ? nil : purchaseLocation,
             purchaseUrl: URL(string: purchaseUrlString),
+            purchaseDate: addPurchaseDate ? purchaseDate : nil,
             washingMethod: washingMethod,
             washingTemperature: washingMethod == .dontWash ? nil : washingTemperature,
             bleaching: bleaching,
