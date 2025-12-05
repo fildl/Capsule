@@ -22,11 +22,7 @@ struct WardrobeView: View {
                 .padding(.horizontal)
                 
                 if selectedSegment == 0 {
-                    ContentUnavailableView(
-                        "No Items Yet",
-                        systemImage: "tshirt",
-                        description: Text("Tap + to add your first item")
-                    )
+                    ItemGridView()
                 } else {
                     ContentUnavailableView(
                         "No Outfits Yet",

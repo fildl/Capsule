@@ -20,6 +20,7 @@ struct AddItemView: View {
     // MARK: - Form State
     @State private var mainCategory: MainCategory = .top
     @State private var subCategory: String = ""
+    @State private var selectedColor: ClothingColor = .black
     @State private var brand: String = ""
     @State private var size: String = ""
     @State private var materialComposition: String = ""
@@ -68,17 +69,67 @@ struct AddItemView: View {
                 }
                 
                 // Section 2: Basic Info
-                Section("Categorization") {
+                Section("Category") {
                     Picker("Category", selection: $mainCategory) {
                         ForEach(MainCategory.allCases) { category in
                             Text(category.rawValue).tag(category)
                         }
                     }
+                    .onChange(of: mainCategory) {
+                        subCategory = mainCategory.defaultSubcategories.first ?? ""
+                    }
                     
-                    TextField("Subcategory (e.g. Jeans, T-Shirt)", text: $subCategory)
+                    Picker("Subcategory", selection: $subCategory) {
+                        if subCategory.isEmpty {
+                            Text("Select...").tag("")
+                        }
+                        ForEach(mainCategory.defaultSubcategories, id: \.self) { sub in
+                            Text(sub).tag(sub)
+                        }
+                    }
+                }
+                .onAppear {
+                    if subCategory.isEmpty {
+                        subCategory = mainCategory.defaultSubcategories.first ?? ""
+                    }
                 }
                 
-                // Section 3: Details
+                // Section 3: Color
+                Section("Color") {
+                    LazyVGrid(columns: [GridItem(.adaptive(minimum: 44))], spacing: 10) {
+                        ForEach(ClothingColor.allCases) { color in
+                            ZStack {
+                                Circle()
+                                    .fill(color.color)
+                                    .frame(width: 44, height: 44)
+                                    .overlay(
+                                        Circle()
+                                            .stroke(Color.gray.opacity(0.2), lineWidth: 1)
+                                    )
+                                    
+                                if (color == .multi) {
+                                  Image(systemName: "paintpalette.fill")
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                                
+                                if selectedColor == color {
+                                    Image(systemName: "checkmark")
+                                        .foregroundStyle(color == .white || color == .beige || color == .yellow || color == .gold || color == .silver ? .black : .white)
+                                }
+                            }
+                            .onTapGesture {
+                                selectedColor = color
+                            }
+                        }
+                    }
+                    .padding(.vertical, 8)
+                    Text("Selected: \(selectedColor.rawValue)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                
+                // Section 4: Details
                 Section("Details") {
                     TextField("Brand", text: $brand)
                     TextField("Size", text: $size)
@@ -166,7 +217,7 @@ struct AddItemView: View {
             subCategory: subCategory,
             brand: brand.isEmpty ? nil : brand,
             size: size.isEmpty ? nil : size,
-            colors: [], // TODO: Add Color Picker
+            colors: [selectedColor.rawValue],
             materialComposition: materialComposition.isEmpty ? nil : materialComposition,
             seasons: selectedSeasons,
             price: price,

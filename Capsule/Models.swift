@@ -20,6 +20,17 @@ enum MainCategory: String, Codable, CaseIterable, Identifiable {
     case onePiece = "One Piece"
     
     var id: String { rawValue }
+    
+    var defaultSubcategories: [String] {
+        switch self {
+        case .top: return ["T-Shirt", "Shirt", "Sweater", "Hoodie", "Cardigan", "Blouse", "Tank Top", "Blazer"]
+        case .bottom: return ["Jeans", "Trousers", "Shorts", "Skirt", "Leggings", "Joggers"]
+        case .shoes: return ["Sneakers", "Boots", "Loafers", "Sandals", "Heels", "Flats"]
+        case .outerwear: return ["Coat", "Jacket", "Trench", "Puffer", "Vest", "Raincoat"]
+        case .accessory: return ["Bag", "Belt", "Hat", "Scarf", "Jewelry", "Sunglasses", "Tie"]
+        case .onePiece: return ["Dress", "Jumpsuit", "Romper", "Suit"]
+        }
+    }
 }
 
 enum Season: String, Codable, CaseIterable, Identifiable {
@@ -57,6 +68,54 @@ enum Ironing: String, Codable, CaseIterable, Identifiable {
     case high = "High Heat"
     
     var id: String { rawValue }
+}
+
+enum ClothingColor: String, CaseIterable, Identifiable {
+    case black = "Black"
+    case white = "White"
+    case gray = "Gray"
+    case navy = "Navy"
+    case blue = "Blue"
+    case lightBlue = "Light Blue"
+    case red = "Red"
+    case burgundy = "Burgundy"
+    case beige = "Beige"
+    case brown = "Brown"
+    case green = "Green"
+    case olive = "Olive"
+    case yellow = "Yellow"
+    case orange = "Orange"
+    case purple = "Purple"
+    case pink = "Pink"
+    case gold = "Gold"
+    case silver = "Silver"
+    case multi = "Multicolor"
+    
+    var id: String { rawValue }
+    
+    var color: Color {
+        switch self {
+        case .black: return .black
+        case .white: return .white
+        case .gray: return .gray
+        case .navy: return Color(red: 0, green: 0, blue: 0.5)
+        case .blue: return .blue
+        case .lightBlue: return .cyan
+        case .red: return .red
+        case .burgundy: return Color(red: 0.5, green: 0, blue: 0.13)
+        case .beige: return Color(red: 0.96, green: 0.96, blue: 0.86)
+        case .brown: return .brown
+        case .green: return .green
+        case .olive: return Color(red: 0.5, green: 0.5, blue: 0)
+        case .yellow: return .yellow
+        case .orange: return .orange
+        case .purple: return .purple
+        case .pink: return .pink
+        case .gold: return Color(red: 1, green: 0.84, blue: 0)
+        case .silver: return Color(red: 0.75, green: 0.75, blue: 0.75)
+        case .multi: return .clear
+        }
+    }
 }
 
 // MARK: - Models
