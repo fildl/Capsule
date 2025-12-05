@@ -71,52 +71,124 @@ enum Ironing: String, Codable, CaseIterable, Identifiable {
 }
 
 enum ClothingColor: String, CaseIterable, Identifiable {
+    // Neutrals
     case black = "Black"
-    case white = "White"
+    case charcoal = "Charcoal"
     case gray = "Gray"
+    case white = "White"
+    case cream = "Cream"
+    case beige = "Beige"
+    case tan = "Tan"
+    case brown = "Brown"
+    
+    // Blues
     case navy = "Navy"
     case blue = "Blue"
+    case denim = "Denim"
     case lightBlue = "Light Blue"
-    case red = "Red"
-    case burgundy = "Burgundy"
-    case beige = "Beige"
-    case brown = "Brown"
+    case teal = "Teal"
+    
+    // Greens
+    case darkGreen = "Dark Green"
     case green = "Green"
     case olive = "Olive"
+    case mint = "Mint"
+    case lime = "Lime"
+    
+    // Reds/Pinks
+    case red = "Red"
+    case burgundy = "Burgundy"
+    case coral = "Coral"
+    case pink = "Pink"
+    case magenta = "Magenta"
+    
+    // Purples
+    case purple = "Purple"
+    case lavender = "Lavender"
+    
+    // Yellows/Oranges
     case yellow = "Yellow"
     case orange = "Orange"
-    case purple = "Purple"
-    case pink = "Pink"
+    
+    // Metallics
     case gold = "Gold"
     case silver = "Silver"
+    case roseGold = "Rose Gold"
     
     var id: String { rawValue }
     
     var color: Color {
         switch self {
         case .black: return .black
-        case .white: return .white
+        case .charcoal: return Color(white: 0.2)
         case .gray: return .gray
+        case .white: return .white
+        case .cream: return Color(red: 0.99, green: 0.99, blue: 0.90)
+        case .beige: return Color(red: 0.96, green: 0.96, blue: 0.86)
+        case .tan: return Color(red: 0.82, green: 0.71, blue: 0.55)
+        case .brown: return .brown
+            
         case .navy: return Color(red: 0, green: 0, blue: 0.5)
         case .blue: return .blue
+        case .denim: return Color(red: 0.24, green: 0.35, blue: 0.50)
         case .lightBlue: return .cyan
-        case .red: return .red
-        case .burgundy: return Color(red: 0.5, green: 0, blue: 0.13)
-        case .beige: return Color(red: 0.96, green: 0.96, blue: 0.86)
-        case .brown: return .brown
+        case .teal: return Color(red: 0, green: 0.5, blue: 0.5)
+            
+        case .darkGreen: return Color(red: 0, green: 0.39, blue: 0)
         case .green: return .green
         case .olive: return Color(red: 0.5, green: 0.5, blue: 0)
+        case .mint: return Color(red: 0.6, green: 1.0, blue: 0.8)
+        case .lime: return Color(red: 0.75, green: 1.0, blue: 0)
+            
+        case .red: return .red
+        case .burgundy: return Color(red: 0.5, green: 0, blue: 0.13)
+        case .coral: return Color(red: 1, green: 0.5, blue: 0.31)
+        case .pink: return .pink
+        case .magenta: return Color(red: 1.0, green: 0.0, blue: 1.0)
+            
+        case .purple: return .purple
+        case .lavender: return Color(red: 0.9, green: 0.9, blue: 0.98)
+            
         case .yellow: return .yellow
         case .orange: return .orange
-        case .purple: return .purple
-        case .pink: return .pink
+        
         case .gold: return Color(red: 1, green: 0.84, blue: 0)
         case .silver: return Color(red: 0.75, green: 0.75, blue: 0.75)
+        case .roseGold: return Color(red: 0.72, green: 0.45, blue: 0.45)
         }
     }
 }
 
 // MARK: - Models
+
+// MARK: - Constants
+
+let popularBrands = [
+    "Abercrombie & Fitch", "Adidas", "Aeropostale", "Aldo", "Alexander McQueen", "Alo Yoga", "American Apparel", "American Eagle", "Anthropologie", "Armani", "Asos",
+    "Balenciaga", "Banana Republic", "Barbour", "Bershka", "Billabong", "Birkenstock", "Boss", "Bottega Veneta", "Brooks Brothers", "Burberry",
+    "Calvin Klein", "Canada Goose", "Carhartt", "Cartier", "Celine", "Champion", "Chanel", "Chloe", "Christian Louboutin", "Coach", "Columbia", "Common Projects", "Converse", "Cos", "Crocs",
+    "Desigual", "Dickies", "Dior", "Doc Martens", "Dolce & Gabbana", "Dr. Martens", "Dsquared2",
+    "Everlane",
+    "Fendi", "Fila", "Forever 21", "Free People", "Fred Perry", "Fruit of the Loom",
+    "Gant", "Gap", "Givenchy", "Gucci", "Guess", "Gymshark",
+    "H&M", "Hermès", "Hollister", "Hugo Boss", "Hunter",
+    "Isabel Marant",
+    "J.Crew", "Jimmy Choo", "Jordan",
+    "Kate Spade", "Kenzo",
+    "Lacoste", "Lee", "Levi's", "Loewe", "Louis Vuitton", "Lululemon",
+    "Mango", "Marc Jacobs", "Marni", "Massimo Dutti", "Michael Kors", "Miu Miu", "Moncler", "Moschino", "Mother",
+    "New Balance", "Nike", "North Face",
+    "Oakley", "Off-White", "Old Navy", "Omega", "Only",
+    "Pandora", "Patagonia", "Paul Smith", "Pepe Jeans", "Prada", "Primaesha", "Primark", "Pull & Bear", "Puma",
+    "Ralph Lauren", "Ray-Ban", "Reebok", "Reformation", "River Island", "Rolex",
+    "Saint Laurent", "Salvatore Ferragamo", "Sandro", "Scotch & Soda", "Seiko", "Shein", "Skechers", "Stella McCartney", "Stone Island", "Stussy", "Superdry", "Supreme", "Swarovski",
+    "Ted Baker", "The North Face", "Tiffany & Co.", "Timberland", "Tommy Hilfiger", "Toms", "Topman", "Topshop", "Tory Burch",
+    "Under Armour", "Uniqlo", "Urban Outfitters",
+    "Valentino", "Vans", "Versace", "Vetements", "Victoria's Secret", "Vivienne Westwood", "Vogue",
+    "Weekday", "Woolrich",
+    "Yeezy", "YSL",
+    "Zara", "Zegna"
+]
 
 @Model
 final class ClothingItem {

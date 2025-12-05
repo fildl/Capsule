@@ -81,7 +81,7 @@ struct AddItemView: View {
                     
                     Picker("Subcategory", selection: $subCategory) {
                         if subCategory.isEmpty {
-                            Text("Select...").tag("")
+                            Text("Select").tag("")
                         }
                         ForEach(mainCategory.defaultSubcategories, id: \.self) { sub in
                             Text(sub).tag(sub)
@@ -94,42 +94,70 @@ struct AddItemView: View {
                     }
                 }
                 
-                // Section 3: Color
-                Section("Color") {
+                // Section 3: Details
+                Section("Details") {
                     NavigationLink {
                         ColorSelectionView(selectedColors: $selectedColors)
                     } label: {
-                        HStack {
-                            Text("Colors")
-                            Spacer()
-                            if selectedColors.isEmpty {
-                                Text("None")
+                        if selectedColors.isEmpty {
+                            HStack {
+                                Text("Colors")
+                                Spacer()
+                                Text("Select")
                                     .foregroundStyle(.secondary)
-                            } else {
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 4) {
-                                        ForEach(Array(selectedColors).sorted(by: { $0.rawValue < $1.rawValue }), id: \.self) { color in
+                            }
+                        } else {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack(spacing: 12) {
+                                    ForEach(Array(selectedColors).sorted(by: { $0.rawValue < $1.rawValue }), id: \.self) { color in
+                                        HStack(spacing: 4) {
                                             Circle()
                                                 .fill(color.color)
-                                                .frame(width: 20, height: 20)
+                                                .frame(width: 16, height: 16)
                                                 .overlay(Circle().stroke(Color.gray.opacity(0.2)))
+                                            Text(color.rawValue)
+                                                .font(.subheadline)
                                         }
+                                        .padding(.vertical, 4)
+                                        .padding(.horizontal, 8)
+                                        .background(Color(.systemGray6))
+                                        .cornerRadius(8)
                                     }
                                 }
-                                .frame(maxWidth: 150, alignment: .trailing)
                             }
                         }
                     }
-                }
-                
-                // Section 4: Details
-                Section("Details") {
-                    TextField("Brand", text: $brand)
+                    
+                    NavigationLink {
+                        BrandSelectionView(selectedBrand: $brand)
+                    } label: {
+                        HStack {
+                            Text("Brand")
+                            Spacer()
+                            Text(brand.isEmpty ? "Select" : brand)
+                                .foregroundStyle(brand.isEmpty ? .secondary : .primary)
+                        }
+                    }
+                    
                     TextField("Size", text: $size)
                     TextField("Material (e.g. 100% Cotton)", text: $materialComposition)
                     
                     // Seasons Multi-Select
                     DisclosureGroup("Seasons") {
+                        Toggle("All Year", isOn: Binding(
+                            get: { selectedSeasons.count == Season.allCases.count },
+                            set: { isOn in
+                                if isOn {
+                                    selectedSeasons = Set(Season.allCases)
+                                } else {
+                                    selectedSeasons.removeAll()
+                                }
+                            }
+                        ))
+                        .padding(.bottom, 4)
+                        
+                        Divider()
+                        
                         ForEach(Season.allCases) { season in
                             Toggle(season.rawValue, isOn: Binding(
                                 get: { selectedSeasons.contains(season) },
