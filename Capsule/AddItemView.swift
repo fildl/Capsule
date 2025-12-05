@@ -139,11 +139,33 @@ struct AddItemView: View {
                         }
                     }
                     
-                    TextField("Size", text: $size)
-                    TextField("Material (e.g. 100% Cotton)", text: $materialComposition)
+                    NavigationLink {
+                        SizeSelectionView(selectedSize: $size, category: mainCategory)
+                    } label: {
+                        HStack {
+                            Text("Size")
+                            Spacer()
+                            Text(size.isEmpty ? "Select" : size)
+                                .foregroundStyle(size.isEmpty ? .secondary : .primary)
+                        }
+                    }
+                    
+                    
+                    NavigationLink {
+                        FabricSelectionView(materialComposition: $materialComposition)
+                    } label: {
+                        HStack {
+                            Text("Fabric")
+                            Spacer()
+                            Text(materialComposition.isEmpty ? "Select" : materialComposition)
+                                .foregroundStyle(materialComposition.isEmpty ? .secondary : .primary)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+                    }
                     
                     // Seasons Multi-Select
-                    DisclosureGroup("Seasons") {
+                    DisclosureGroup(content: {
                         Toggle("All Year", isOn: Binding(
                             get: { selectedSeasons.count == Season.allCases.count },
                             set: { isOn in
@@ -167,7 +189,16 @@ struct AddItemView: View {
                                 }
                             ))
                         }
-                    }
+                    }, label: {
+                        HStack {
+                            Text("Seasons")
+                            Spacer()
+                            Text(selectedSeasonsSummary)
+                                .foregroundStyle(selectedSeasons.isEmpty ? .secondary : .primary)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+                    })
                 }
                 
                 // Section 4: Purchase Info
@@ -224,7 +255,27 @@ struct AddItemView: View {
                     }
                     .disabled(selectedImageData == nil && subCategory.isEmpty) // Minimum validation
                 }
+                
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button("Done") {
+                        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                    }
+                }
             }
+            .scrollDismissesKeyboard(.interactively)
+        }
+    }
+    
+    private var selectedSeasonsSummary: String {
+        if selectedSeasons.isEmpty {
+            return "Select"
+        } else if selectedSeasons.count == Season.allCases.count {
+            return "All Year"
+        } else {
+            // Sort by the order in Season.allCases to keep it consistent
+            let sortedSeasons = Season.allCases.filter { selectedSeasons.contains($0) }
+            return sortedSeasons.map { $0.rawValue }.joined(separator: ", ")
         }
     }
     

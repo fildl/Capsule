@@ -14,21 +14,41 @@ import SwiftUI
 enum MainCategory: String, Codable, CaseIterable, Identifiable {
     case top = "Top"
     case bottom = "Bottom"
-    case shoes = "Shoes"
-    case outerwear = "Outerwear"
+    case fullBody = "Full Body"
+    case footwear = "Footwear"
     case accessory = "Accessory"
-    case onePiece = "One Piece"
+    case outerwear = "Outerwear"
+    case underwear = "Underwear"
+    case nightwear = "Nightwear"
+    case sport = "Sport"
     
-    var id: String { rawValue }
+    var id: String { self.rawValue }
+    
+    var iconName: String {
+        switch self {
+        case .top: return "tshirt"
+        case .bottom: return "trousers" // Custom logic might be needed if SF Symbols doesn't match perfectly, usually pants or figure.walk
+        case .fullBody: return "figure.dress"
+        case .footwear: return "shoe"
+        case .accessory: return "bag"
+        case .outerwear: return "jacket"
+        case .underwear: return "heart" // Placeholder
+        case .nightwear: return "moon"
+        case .sport: return "figure.run"
+        }
+    }
     
     var defaultSubcategories: [String] {
         switch self {
         case .top: return ["T-Shirt", "Shirt", "Sweater", "Hoodie", "Cardigan", "Blouse", "Tank Top", "Blazer"]
         case .bottom: return ["Jeans", "Trousers", "Shorts", "Skirt", "Leggings", "Joggers"]
-        case .shoes: return ["Sneakers", "Boots", "Loafers", "Sandals", "Heels", "Flats"]
+        case .footwear: return ["Sneakers", "Boots", "Loafers", "Sandals", "Heels", "Flats"]
         case .outerwear: return ["Coat", "Jacket", "Trench", "Puffer", "Vest", "Raincoat"]
         case .accessory: return ["Bag", "Belt", "Hat", "Scarf", "Jewelry", "Sunglasses", "Tie"]
-        case .onePiece: return ["Dress", "Jumpsuit", "Romper", "Suit"]
+        case .fullBody: return ["Dress", "Jumpsuit", "Romper", "Suit"]
+        case .underwear: return ["Briefs", "Boxers", "Socks", "Bra", "Panties"]
+        case .nightwear: return ["Pajamas", "Robe", "Nightgown"]
+        case .sport: return ["Sports Bra", "Leggings", "Shorts", "Top"]
         }
     }
 }
