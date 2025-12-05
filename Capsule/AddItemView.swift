@@ -154,9 +154,6 @@ struct AddItemView: View {
                                 }
                             }
                         ))
-                        .padding(.bottom, 4)
-                        
-                        Divider()
                         
                         ForEach(Season.allCases) { season in
                             Toggle(season.rawValue, isOn: Binding(

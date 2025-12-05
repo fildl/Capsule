@@ -93,20 +93,7 @@ struct BrandSelectionView: View {
                 }
             }
         }
-        .safeAreaInset(edge: .bottom) {
-            HStack {
-                Image(systemName: "magnifyingglass")
-                    .foregroundStyle(.secondary)
-                TextField("Search Brand", text: $searchText)
-                    .submitLabel(.done)
-            }
-            .padding(10)
-            .background(Color(.systemGray6))
-            .cornerRadius(10)
-            .padding(.horizontal)
-            .padding(.bottom)
-            .background(.regularMaterial)
-        }
+        .searchable(text: $searchText, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search Brand")
         .navigationTitle("Select Brand")
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
