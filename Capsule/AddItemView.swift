@@ -16,6 +16,9 @@ struct AddItemView: View {
     // MARK: - Image State
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImageData: Data?
+    @State private var originalImageData: Data?
+    @State private var isBackgroundRemoved: Bool = false
+    @State private var isProcessingImage: Bool = false
     
     // MARK: - Form State
     @State private var mainCategory: MainCategory = .top
@@ -44,35 +47,80 @@ struct AddItemView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // Section 1: Image
+                // Section 1: Photo
                 Section {
-                    if let selectedImageData, let uiImage = UIImage(data: selectedImageData) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxHeight: 300)
+                    PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
+                        if let selectedImageData, let uiImage = UIImage(data: selectedImageData) {
+                            ZStack {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(maxHeight: 300)
+                                    .cornerRadius(8)
+                                
+                                if isProcessingImage {
+                                    ZStack {
+                                        Color.black.opacity(0.4)
+                                        ProgressView()
+                                            .tint(.white)
+                                    }
+                                }
+                            }
+                        } else {
+                            VStack {
+                                Image(systemName: "camera.fill")
+                                    .font(.system(size: 40))
+                                    .foregroundStyle(.gray)
+                                Text("Add Photo")
+                                    .foregroundStyle(.gray)
+                            }
                             .frame(maxWidth: .infinity)
-                            .listRowInsets(EdgeInsets())
+                            .frame(height: 200)
+                            .background(Color(.systemGray6))
+                            .cornerRadius(12)
+                        }
+                    }
+                    .onChange(of: selectedItem) {
+                        Task {
+                            if let data = try? await selectedItem?.loadTransferable(type: Data.self) {
+                                withAnimation {
+                                    selectedImageData = data
+                                    originalImageData = data
+                                    isBackgroundRemoved = false // Reset toggle on new image
+                                }
+                            }
+                        }
                     }
                     
-                    PhotosPicker(
-                        selection: $selectedItem,
-                        matching: .images,
-                        photoLibrary: .shared()
-                    ) {
-                        Label(
-                            selectedImageData == nil ? "Add Photo" : "Change Photo",
-                            systemImage: "photo"
-                        )
-                    }
-                    .onChange(of: selectedItem) { _, newItem in
-                        Task {
-                            if let data = try? await newItem?.loadTransferable(type: Data.self) {
-                                selectedImageData = data
+                    if selectedImageData != nil {
+                        Toggle(isOn: $isBackgroundRemoved) {
+                            Label("Remove Background", systemImage: "wand.and.stars")
+                        }
+                        .disabled(isProcessingImage)
+                        .onChange(of: isBackgroundRemoved) {
+                            Task {
+                                if isBackgroundRemoved {
+                                    guard let original = originalImageData else { return }
+                                    isProcessingImage = true
+                                    let processed = await ImageProcessing.removeBackground(from: original)
+                                    withAnimation {
+                                        if let processed {
+                                            selectedImageData = processed
+                                        }
+                                        isProcessingImage = false
+                                    }
+                                } else {
+                                    // Revert
+                                    withAnimation {
+                                        selectedImageData = originalImageData
+                                    }
+                                }
                             }
                         }
                     }
                 }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
                 
                 // Section 2: Basic Info
                 Section("Category") {
