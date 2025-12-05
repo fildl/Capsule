@@ -9,6 +9,7 @@ import SwiftUI
 
 struct WardrobeView: View {
     @State private var selectedSegment = 0
+    @State private var isShowingAddItem = false
     
     var body: some View {
         NavigationStack {
@@ -40,14 +41,17 @@ struct WardrobeView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button(action: {
-                        // Add Item Action
+                        isShowingAddItem = true
                     }) {
                         Image(systemName: "plus")
                     }
                 }
             }
-                .padding(.bottom, 8) 
+            .sheet(isPresented: $isShowingAddItem) {
+                AddItemView()
             }
+                .padding(.bottom, 8) 
+
         }
     }
 }
