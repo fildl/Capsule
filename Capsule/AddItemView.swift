@@ -26,9 +26,13 @@ struct AddItemView: View {
     @State private var materialComposition: String = ""
     @State private var price: Decimal?
     @State private var purchaseStatus: PurchaseStatus = .new
+    @State private var purchaseLocation: String = ""
     @State private var purchaseUrlString: String = ""
-    @State private var washingMode: WashingMode = .machine30
-    @State private var ironing: Ironing = .no
+    @State private var washingMethod: CareWashingMethod = .machine
+    @State private var washingTemperature: CareTemperature = .warm30
+    @State private var bleaching: CareBleaching = .dontBleach
+    @State private var drying: CareDrying = .dontTumble
+    @State private var ironing: CareIroning = .no
     @State private var careNotes: String = ""
     @State private var notes: String = ""
     
@@ -212,6 +216,9 @@ struct AddItemView: View {
                         }
                     }
                     
+                    TextField("Store / Website", text: $purchaseLocation)
+                        .autocorrectionDisabled()
+                    
                     TextField("URL", text: $purchaseUrlString)
                         .keyboardType(.URL)
                         .autocorrectionDisabled()
@@ -220,15 +227,47 @@ struct AddItemView: View {
                 
                 // Section 5: Care
                 Section("Care Instructions") {
-                    Picker("Washing", selection: $washingMode) {
-                        ForEach(WashingMode.allCases) { mode in
-                            Text(mode.rawValue).tag(mode)
+                    Picker("Washing", selection: $washingMethod) {
+                        ForEach(CareWashingMethod.allCases) { method in
+                            HStack {
+                                Image(systemName: method.icon)
+                                Text(method.rawValue)
+                            }.tag(method)
+                        }
+                    }
+                    
+                    if washingMethod != .dontWash {
+                        Picker("Temperature", selection: $washingTemperature) {
+                            ForEach(CareTemperature.allCases) { temp in
+                                Text(temp.rawValue).tag(temp)
+                            }
+                        }
+                    }
+                    
+                    Picker("Bleaching", selection: $bleaching) {
+                        ForEach(CareBleaching.allCases) { option in
+                            HStack {
+                                Image(systemName: option.icon)
+                                Text(option.rawValue)
+                            }.tag(option)
+                        }
+                    }
+                    
+                    Picker("Drying", selection: $drying) {
+                        ForEach(CareDrying.allCases) { option in
+                            HStack {
+                                Image(systemName: option.icon)
+                                Text(option.rawValue)
+                            }.tag(option)
                         }
                     }
                     
                     Picker("Ironing", selection: $ironing) {
-                        ForEach(Ironing.allCases) { mode in
-                            Text(mode.rawValue).tag(mode)
+                        ForEach(CareIroning.allCases) { option in
+                            HStack {
+                                Image(systemName: option.icon)
+                                Text(option.rawValue)
+                            }.tag(option)
                         }
                     }
                     
@@ -291,8 +330,12 @@ struct AddItemView: View {
             seasons: selectedSeasons,
             price: price,
             purchaseStatus: purchaseStatus,
+            purchaseLocation: purchaseLocation.isEmpty ? nil : purchaseLocation,
             purchaseUrl: URL(string: purchaseUrlString),
-            washingMode: washingMode,
+            washingMethod: washingMethod,
+            washingTemperature: washingMethod == .dontWash ? nil : washingTemperature,
+            bleaching: bleaching,
+            drying: drying,
             ironing: ironing,
             careNotes: careNotes.isEmpty ? nil : careNotes,
             notes: notes.isEmpty ? nil : notes

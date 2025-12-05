@@ -71,23 +71,84 @@ enum PurchaseStatus: String, Codable, CaseIterable, Identifiable {
     var id: String { rawValue }
 }
 
-enum WashingMode: String, Codable, CaseIterable, Identifiable {
-    case machine30 = "Machine 30°"
-    case machine40 = "Machine 40°"
-    case handWash = "Hand Wash"
-    case dryClean = "Dry Clean"
+enum CareWashingMethod: String, Codable, CaseIterable, Identifiable {
+    case machine = "Machine Wash"
+    case hand = "Hand Wash"
     case dontWash = "Do Not Wash"
+    
+    var id: String { rawValue }
+    
+    var icon: String {
+        switch self {
+        case .machine: return "washer"
+        case .hand: return "hand.raised"
+        case .dontWash: return "xmark.circle"
+        }
+    }
+}
+
+enum CareTemperature: String, Codable, CaseIterable, Identifiable {
+    case cold = "Cold"
+    case warm30 = "30°C"
+    case warm40 = "40°C"
+    case hot60 = "60°C"
+    case hot90 = "90°C"
     
     var id: String { rawValue }
 }
 
-enum Ironing: String, Codable, CaseIterable, Identifiable {
-    case no = "No Iron"
+enum CareBleaching: String, Codable, CaseIterable, Identifiable {
+    case allowed = "Bleach Allowed"
+    case nonChlorine = "Non-Chlorine Only"
+    case dontBleach = "Do Not Bleach"
+    
+    var id: String { rawValue }
+    
+    var icon: String {
+        switch self {
+        case .allowed: return "triangle"
+        case .nonChlorine: return "triangle.fill" // Approximation
+        case .dontBleach: return "xmark.bin" // Approximation, triangle with X is hard without custom symbol
+        }
+    }
+}
+
+enum CareDrying: String, Codable, CaseIterable, Identifiable {
+    case tumbleLow = "Tumble Low"
+    case tumbleMedium = "Tumble Medium"
+    case tumbleHigh = "Tumble High"
+    case lineDry = "Line Dry"
+    case flatDry = "Flat Dry"
+    case dontTumble = "Do Not Tumble"
+    
+    var id: String { rawValue }
+    
+    var icon: String {
+        switch self {
+        case .tumbleLow, .tumbleMedium, .tumbleHigh: return "fanblades" // Approximation for tumble
+        case .lineDry: return "tshirt"
+        case .flatDry: return "square.dashed"
+        case .dontTumble: return "xmark.circle"
+        }
+    }
+}
+
+enum CareIroning: String, Codable, CaseIterable, Identifiable {
     case low = "Low Heat"
     case medium = "Medium Heat"
     case high = "High Heat"
+    case noSteam = "No Steam"
+    case no = "No Iron"
     
     var id: String { rawValue }
+    
+    var icon: String {
+        switch self {
+        case .low, .medium, .high: return "iron.bottom"
+        case .noSteam: return "drop.slash"
+        case .no: return "xmark.circle"
+        }
+    }
 }
 
 enum ClothingColor: String, CaseIterable, Identifiable {
@@ -229,12 +290,16 @@ final class ClothingItem {
     // Purchase Info
     var price: Decimal?
     var purchaseStatusRaw: String
+    var purchaseLocation: String?
     var purchaseUrl: URL?
     var purchaseDate: Date?
     
     // Care
-    var washingModeRaw: String
-    var ironingRaw: String
+    var careWashingMethodRaw: String
+    var careTemperatureRaw: String?
+    var careBleachingRaw: String
+    var careDryingRaw: String
+    var careIroningRaw: String
     var careNotes: String?
     
     // Meta
@@ -261,14 +326,29 @@ final class ClothingItem {
         set { purchaseStatusRaw = newValue.rawValue }
     }
     
-    var washingMode: WashingMode {
-        get { WashingMode(rawValue: washingModeRaw) ?? .machine30 }
-        set { washingModeRaw = newValue.rawValue }
+    var washingMethod: CareWashingMethod {
+        get { CareWashingMethod(rawValue: careWashingMethodRaw) ?? .machine }
+        set { careWashingMethodRaw = newValue.rawValue }
     }
     
-    var ironing: Ironing {
-        get { Ironing(rawValue: ironingRaw) ?? .no }
-        set { ironingRaw = newValue.rawValue }
+    var washingTemperature: CareTemperature? {
+        get { careTemperatureRaw != nil ? CareTemperature(rawValue: careTemperatureRaw!) : nil }
+        set { careTemperatureRaw = newValue?.rawValue }
+    }
+    
+    var bleaching: CareBleaching {
+        get { CareBleaching(rawValue: careBleachingRaw) ?? .dontBleach }
+        set { careBleachingRaw = newValue.rawValue }
+    }
+    
+    var drying: CareDrying {
+        get { CareDrying(rawValue: careDryingRaw) ?? .dontTumble }
+        set { careDryingRaw = newValue.rawValue }
+    }
+    
+    var ironing: CareIroning {
+        get { CareIroning(rawValue: careIroningRaw) ?? .no }
+        set { careIroningRaw = newValue.rawValue }
     }
     
     init(
@@ -282,10 +362,14 @@ final class ClothingItem {
         seasons: Set<Season> = [],
         price: Decimal? = nil,
         purchaseStatus: PurchaseStatus = .new,
+        purchaseLocation: String? = nil,
         purchaseUrl: URL? = nil,
         purchaseDate: Date? = nil,
-        washingMode: WashingMode = .machine30,
-        ironing: Ironing = .no,
+        washingMethod: CareWashingMethod = .machine,
+        washingTemperature: CareTemperature? = .warm30,
+        bleaching: CareBleaching = .dontBleach,
+        drying: CareDrying = .dontTumble,
+        ironing: CareIroning = .no,
         careNotes: String? = nil,
         notes: String? = nil
     ) {
@@ -300,10 +384,14 @@ final class ClothingItem {
         self.seasonsRaw = seasons.map { $0.rawValue }
         self.price = price
         self.purchaseStatusRaw = purchaseStatus.rawValue
+        self.purchaseLocation = purchaseLocation
         self.purchaseUrl = purchaseUrl
         self.purchaseDate = purchaseDate
-        self.washingModeRaw = washingMode.rawValue
-        self.ironingRaw = ironing.rawValue
+        self.careWashingMethodRaw = washingMethod.rawValue
+        self.careTemperatureRaw = washingTemperature?.rawValue
+        self.careBleachingRaw = bleaching.rawValue
+        self.careDryingRaw = drying.rawValue
+        self.careIroningRaw = ironing.rawValue
         self.careNotes = careNotes
         self.notes = notes
     }
