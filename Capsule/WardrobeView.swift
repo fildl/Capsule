@@ -2,7 +2,7 @@
 //  WardrobeView.swift
 //  Capsule
 //
-//  Created by Capsule Assistant on 05/12/25.
+//  Created by Filippo Di Ludovico on 05/12/25.
 //
 
 import SwiftUI

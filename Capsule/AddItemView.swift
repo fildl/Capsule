@@ -2,7 +2,7 @@
 //  AddItemView.swift
 //  Capsule
 //
-//  Created by Capsule Assistant on 05/12/25.
+//  Created by Filippo Di Ludovico on 05/12/25.
 //
 
 import SwiftUI
@@ -19,6 +19,7 @@ struct AddItemView: View {
     @State private var originalImageData: Data?
     @State private var isBackgroundRemoved: Bool = false
     @State private var isProcessingImage: Bool = false
+    @State private var isShowingEditor: Bool = false
     
     // MARK: - Form State
     @State private var mainCategory: MainCategory = .top
@@ -49,25 +50,45 @@ struct AddItemView: View {
             Form {
                 // Section 1: Photo
                 Section {
-                    PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
-                        if let selectedImageData, let uiImage = UIImage(data: selectedImageData) {
-                            ZStack {
-                                Image(uiImage: uiImage)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(maxHeight: 300)
-                                    .frame(maxWidth: .infinity)
-                                    .background(Color(.systemGray6)) // Nice background for transparent images
-                                
-                                if isProcessingImage {
-                                    ZStack {
-                                        Color.black.opacity(0.4)
-                                        ProgressView()
-                                            .tint(.white)
+                    if let selectedImageData, let uiImage = UIImage(data: selectedImageData) {
+                        ZStack(alignment: .bottomTrailing) {
+                            // The Image is the trigger for changing photo
+                            PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
+                                ZStack {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(maxHeight: 300)
+                                        .frame(maxWidth: .infinity)
+                                        .background(Color(.systemGray6))
+                                    
+                                    if isProcessingImage {
+                                        ZStack {
+                                            Color.black.opacity(0.4)
+                                            ProgressView()
+                                                .tint(.white)
+                                        }
                                     }
                                 }
                             }
-                        } else {
+                            .buttonStyle(PlainButtonStyle())
+                            
+                            // Edit Button - Outside PhotosPicker
+                            Button {
+                                isShowingEditor = true
+                            } label: {
+                                Image(systemName: "crop")
+                                    .font(.title3)
+                                    .foregroundStyle(.white)
+                                    .padding(8)
+                                    .background(.black.opacity(0.6))
+                                    .clipShape(Circle())
+                            }
+                            .padding()
+                        }
+                    } else {
+                        // Placeholder Trigger
+                        PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
                             VStack {
                                 Image(systemName: "camera.fill")
                                     .font(.system(size: 40))
@@ -79,22 +100,22 @@ struct AddItemView: View {
                             .frame(height: 200)
                             .background(Color(.systemGray6))
                         }
-                    }
-                    .buttonStyle(PlainButtonStyle()) // Ensure the whole area is clickable without standard cell style interference
-                    .onChange(of: selectedItem) {
-                        Task {
-                            if let data = try? await selectedItem?.loadTransferable(type: Data.self) {
-                                withAnimation {
-                                    selectedImageData = data
-                                    originalImageData = data
-                                    isBackgroundRemoved = false // Reset toggle on new image
-                                }
-                            }
-                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
                 }
                 .listRowBackground(Color.clear)
                 .listRowInsets(EdgeInsets())
+                .onChange(of: selectedItem) {
+                    Task {
+                        if let data = try? await selectedItem?.loadTransferable(type: Data.self) {
+                            withAnimation {
+                                selectedImageData = data
+                                originalImageData = data
+                                isBackgroundRemoved = false // Reset toggle on new image
+                            }
+                        }
+                    }
+                }
                 
                 if selectedImageData != nil {
                     Section {
@@ -349,6 +370,23 @@ struct AddItemView: View {
                 }
             }
             .scrollDismissesKeyboard(.interactively)
+        }
+        .sheet(isPresented: $isShowingEditor) {
+            if let imageDataToEdit = selectedImageData, let uiImage = UIImage(data: imageDataToEdit) {
+                ImageEditorView(inputImage: uiImage) { editedImage in
+                    withAnimation {
+                        if let data = editedImage.pngData() {
+                            selectedImageData = data
+                            // If we edited the original, update original too so toggle keeps sync?
+                            // No, if BG is removed, we are editing the result. Original stays as "Raw".
+                            // If user turns off BG removal, they go back to Raw.
+                            if !isBackgroundRemoved {
+                                originalImageData = data
+                            }
+                        }
+                    }
+                }
+            }
         }
     }
     
