@@ -164,45 +164,47 @@ struct ItemDetailView: View {
                         }
                     }
                     
-                    Divider()
-                    
-                    // Care
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("CARE DETAILS")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundStyle(.secondary)
+                    if item.careWashingMethodRaw != nil {
+                        Divider()
                         
-                        HStack(spacing: 20) {
-                            // Washing
-                            if let washing = CareWashingMethod(rawValue: item.careWashingMethodRaw ?? "") {
-                                CareIconView(icon: washing.icon, label: washing.rawValue)
-                            }
-                            // Temp
-                             if let temp = CareTemperature(rawValue: item.careTemperatureRaw ?? "") {
-                                CareIconView(icon: "thermometer", label: temp.rawValue)
-                            }
-                            // Bleach
-                             if let bleach = CareBleaching(rawValue: item.careBleachingRaw ?? "") {
-                                CareIconView(icon: bleach.icon, label: bleach.rawValue)
-                            }
-                        }
-                        HStack(spacing: 20) {
-                             // Drying
-                             if let dry = CareDrying(rawValue: item.careDryingRaw ?? "") {
-                                CareIconView(icon: dry.icon, label: dry.rawValue)
-                            }
-                            // Ironing
-                             if let iron = CareIroning(rawValue: item.careIroningRaw ?? "") {
-                                CareIconView(icon: iron.icon, label: iron.rawValue)
-                            }
-                        }
-                        
-                        if let notes = item.careNotes, !notes.isEmpty {
-                            Text(notes)
-                                .font(.subheadline)
+                        // Care
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("CARE DETAILS")
+                                .font(.caption)
+                                .fontWeight(.bold)
                                 .foregroundStyle(.secondary)
-                                .italic()
+                            
+                            HStack(spacing: 20) {
+                                // Washing
+                                if let washing = CareWashingMethod(rawValue: item.careWashingMethodRaw ?? "") {
+                                    CareIconView(icon: washing.icon, label: washing.rawValue)
+                                }
+                                // Temp
+                                if let temp = CareTemperature(rawValue: item.careTemperatureRaw ?? "") {
+                                    CareIconView(icon: "thermometer", label: temp.rawValue)
+                                }
+                                // Bleach
+                                if let bleach = CareBleaching(rawValue: item.careBleachingRaw ?? "") {
+                                    CareIconView(icon: bleach.icon, label: bleach.rawValue)
+                                }
+                            }
+                            HStack(spacing: 20) {
+                                // Drying
+                                if let dry = CareDrying(rawValue: item.careDryingRaw ?? "") {
+                                    CareIconView(icon: dry.icon, label: dry.rawValue)
+                                }
+                                // Ironing
+                                if let iron = CareIroning(rawValue: item.careIroningRaw ?? "") {
+                                    CareIconView(icon: iron.icon, label: iron.rawValue)
+                                }
+                            }
+                            
+                            if let notes = item.careNotes, !notes.isEmpty {
+                                Text(notes)
+                                    .font(.subheadline)
+                                    .foregroundStyle(.secondary)
+                                    .italic()
+                            }
                         }
                     }
                     
