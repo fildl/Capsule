@@ -408,6 +408,7 @@ final class Outfit {
     var seasonsRaw: [String]
     var notes: String?
     var isFavorite: Bool = false
+    @Attribute(.externalStorage) var canvasImageData: Data?
     var createdAt: Date = Date()
     
     @Relationship var items: [ClothingItem]?
@@ -418,11 +419,12 @@ final class Outfit {
         set { seasonsRaw = newValue.map { $0.rawValue } }
     }
     
-    init(items: [ClothingItem] = [], seasons: Set<Season> = [], notes: String? = nil) {
+    init(items: [ClothingItem] = [], seasons: Set<Season> = [], notes: String? = nil, canvasImageData: Data? = nil) {
         self.id = UUID()
         self.items = items
         self.seasonsRaw = seasons.map { $0.rawValue }
         self.notes = notes
+        self.canvasImageData = canvasImageData
     }
 }
 

@@ -40,27 +40,39 @@ struct OutfitCard: View {
     
     var body: some View {
         VStack(spacing: 8) {
-            // Collage Preview
-            // We use a simple grid of up to 4 items for preview
-            let previewItems = Array(outfit.items?.prefix(4) ?? [])
-            
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 2) {
-                ForEach(previewItems) { item in
-                    if let data = item.imageData, let uiImage = UIImage(data: data) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(minWidth: 0, maxWidth: .infinity)
-                            .aspectRatio(1, contentMode: .fill)
-                            .clipped()
-                    } else {
-                        Color.gray.opacity(0.1)
-                            .aspectRatio(1, contentMode: .fit)
+            // Preview Area
+            Group {
+                if let canvasData = outfit.canvasImageData, let uiImage = UIImage(data: canvasData) {
+                    // Show Saved Collage
+                    Image(uiImage: uiImage)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 200)
+                        .background(Color.white)
+                } else {
+                    // Fallback to Dynamic Collage (for old outfits or failures)
+                    let previewItems = Array(outfit.items?.prefix(4) ?? [])
+                    
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 2) {
+                        ForEach(previewItems) { item in
+                            if let data = item.imageData, let uiImage = UIImage(data: data) {
+                                Image(uiImage: uiImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(minWidth: 0, maxWidth: .infinity)
+                                    .aspectRatio(1, contentMode: .fill)
+                                    .clipped()
+                            } else {
+                                Color.gray.opacity(0.1)
+                                    .aspectRatio(1, contentMode: .fit)
+                            }
+                        }
                     }
+                    .frame(height: 200)
                 }
             }
             .cornerRadius(12)
-            .frame(height: 200) // Fixed height for card
             .clipped()
             
             // Meta Info
