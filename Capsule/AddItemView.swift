@@ -13,6 +13,8 @@ struct AddItemView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     
+    var itemToEdit: ClothingItem?
+    
     // MARK: - Image State
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImageData: Data?
@@ -371,10 +373,11 @@ struct AddItemView: View {
                 
                 // Section 6: Notes
                 Section("Notes") {
-                    TextField("General Notes", text: $notes, axis: .vertical)
+                    TextField("Add notes...", text: $notes, axis: .vertical)
+                        .lineLimit(3...6)
                 }
             }
-            .navigationTitle("New Item")
+            .navigationTitle(itemToEdit == nil ? "New Item" : "Edit Item")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -387,7 +390,7 @@ struct AddItemView: View {
                     Button("Save") {
                         saveItem()
                     }
-                    .disabled(selectedImageData == nil && subCategory.isEmpty) // Minimum validation
+                    .disabled(selectedImageData == nil && itemToEdit == nil) // Allow save if editing and keeping old image
                 }
                 
                 ToolbarItemGroup(placement: .keyboard) {
@@ -422,6 +425,11 @@ struct AddItemView: View {
                 }
             }
         }
+        .onAppear {
+            if let item = itemToEdit {
+                loadItemData(item)
+            }
+        }
     }
     
     private var selectedSeasonsSummary: String {
@@ -436,31 +444,103 @@ struct AddItemView: View {
         }
     }
     
-    private func saveItem() {
-        let newItem = ClothingItem(
-            imageData: selectedImageData,
-            mainCategory: mainCategory,
-            subCategory: subCategory,
-            brand: brand.isEmpty ? nil : brand,
-            size: size.isEmpty ? nil : size,
-            colors: selectedColors.map { $0.rawValue },
-            materialComposition: materialComposition.isEmpty ? nil : materialComposition,
-            seasons: selectedSeasons,
-            price: price,
-            purchaseStatus: purchaseStatus,
-            purchaseLocation: purchaseLocation.isEmpty ? nil : purchaseLocation,
-            purchaseUrl: URL(string: purchaseUrlString),
-            purchaseDate: addPurchaseDate ? purchaseDate : nil,
-            washingMethod: washingMethod,
-            washingTemperature: washingMethod == .dontWash ? nil : washingTemperature,
-            bleaching: bleaching,
-            drying: drying,
-            ironing: ironing,
-            careNotes: careNotes.isEmpty ? nil : careNotes,
-            notes: notes.isEmpty ? nil : notes
-        )
+    private func loadItemData(_ item: ClothingItem) {
+        // Image
+        selectedImageData = item.imageData
+        originalImageData = item.imageData // We assume stored is "original" or we treat it as base
+        // If we want to support non-destructive editing of ALREADY saved items, we'd need to store original separately in Model.
+        // For now, assume loaded image is the base.
         
-        modelContext.insert(newItem)
+        mainCategory = item.mainCategory
+        subCategory = item.subCategory
+        brand = item.brand ?? ""
+        size = item.size ?? ""
+        
+        // Color
+        selectedColors = Set(item.colors.compactMap { ClothingColor(rawValue: $0) })
+        
+        // Seasons
+        selectedSeasons = item.seasons
+        
+        materialComposition = item.materialComposition ?? ""
+        
+        // Care
+        washingMethod = item.washingMethod
+        washingTemperature = item.washingTemperature ?? .warm30
+        bleaching = item.bleaching
+        drying = item.drying
+        ironing = item.ironing
+        careNotes = item.careNotes ?? ""
+        
+        // Purchase
+        purchaseLocation = item.purchaseLocation ?? ""
+        purchaseUrlString = item.purchaseUrl?.absoluteString ?? ""
+        if let date = item.purchaseDate {
+            addPurchaseDate = true
+            purchaseDate = date
+        } else {
+            addPurchaseDate = false
+        }
+        price = item.price
+        purchaseStatus = item.purchaseStatus
+        
+        notes = item.notes ?? ""
+    }
+    
+    private func saveItem() {
+        guard let imageData = selectedImageData else { return }
+        
+        if let item = itemToEdit {
+            // Update Existing
+            item.imageData = imageData
+            item.mainCategory = mainCategory
+            item.subCategory = subCategory
+            item.brand = brand.isEmpty ? nil : brand
+            item.size = size.isEmpty ? nil : size
+            item.colors = selectedColors.map { $0.rawValue }
+            item.materialComposition = materialComposition.isEmpty ? nil : materialComposition
+            item.seasons = selectedSeasons
+            item.price = price
+            item.purchaseStatus = purchaseStatus
+            item.purchaseLocation = purchaseLocation.isEmpty ? nil : purchaseLocation
+            item.purchaseUrl = URL(string: purchaseUrlString)
+            item.purchaseDate = addPurchaseDate ? purchaseDate : nil
+            item.washingMethod = washingMethod
+            item.washingTemperature = washingMethod == .dontWash ? nil : washingTemperature
+            item.bleaching = bleaching
+            item.drying = drying
+            item.ironing = ironing
+            item.careNotes = careNotes.isEmpty ? nil : careNotes
+            item.notes = notes.isEmpty ? nil : notes
+            
+        } else {
+            // Create New
+            let newItem = ClothingItem(
+                imageData: imageData,
+                mainCategory: mainCategory,
+                subCategory: subCategory,
+                brand: brand.isEmpty ? nil : brand,
+                size: size.isEmpty ? nil : size,
+                colors: selectedColors.map { $0.rawValue },
+                materialComposition: materialComposition.isEmpty ? nil : materialComposition,
+                seasons: selectedSeasons,
+                price: price,
+                purchaseStatus: purchaseStatus,
+                purchaseLocation: purchaseLocation.isEmpty ? nil : purchaseLocation,
+                purchaseUrl: URL(string: purchaseUrlString),
+                purchaseDate: addPurchaseDate ? purchaseDate : nil,
+                washingMethod: washingMethod,
+                washingTemperature: washingMethod == .dontWash ? nil : washingTemperature,
+                bleaching: bleaching,
+                drying: drying,
+                ironing: ironing,
+                careNotes: careNotes.isEmpty ? nil : careNotes,
+                notes: notes.isEmpty ? nil : notes
+            )
+            
+            modelContext.insert(newItem)
+        }
+        
         dismiss()
     }
 }

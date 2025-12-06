@@ -26,7 +26,10 @@ struct ItemGridView: View {
             ScrollView {
                 LazyVGrid(columns: columns, spacing: 16) {
                     ForEach(items) { item in
-                        ItemCard(item: item)
+                        NavigationLink(destination: ItemDetailView(item: item)) {
+                            ItemCard(item: item)
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
                 }
                 .padding()
