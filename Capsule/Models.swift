@@ -2,7 +2,7 @@
 //  Models.swift
 //  Capsule
 //
-//  Created by Capsule Assistant on 05/12/25.
+//  Created by Filippo Di Ludovico on 05/12/25.
 //
 
 import Foundation
@@ -297,11 +297,12 @@ final class ClothingItem {
     var purchaseDate: Date?
     
     // Care
-    var careWashingMethodRaw: String
+    // Care
+    var careWashingMethodRaw: String?
     var careTemperatureRaw: String?
-    var careBleachingRaw: String
-    var careDryingRaw: String
-    var careIroningRaw: String
+    var careBleachingRaw: String?
+    var careDryingRaw: String?
+    var careIroningRaw: String?
     var careNotes: String?
     
     // Meta
@@ -329,7 +330,7 @@ final class ClothingItem {
     }
     
     var washingMethod: CareWashingMethod {
-        get { CareWashingMethod(rawValue: careWashingMethodRaw) ?? .machine }
+        get { CareWashingMethod(rawValue: careWashingMethodRaw ?? "") ?? .machine }
         set { careWashingMethodRaw = newValue.rawValue }
     }
     
@@ -339,17 +340,17 @@ final class ClothingItem {
     }
     
     var bleaching: CareBleaching {
-        get { CareBleaching(rawValue: careBleachingRaw) ?? .dontBleach }
+        get { CareBleaching(rawValue: careBleachingRaw ?? "") ?? .dontBleach }
         set { careBleachingRaw = newValue.rawValue }
     }
     
     var drying: CareDrying {
-        get { CareDrying(rawValue: careDryingRaw) ?? .dontTumble }
+        get { CareDrying(rawValue: careDryingRaw ?? "") ?? .dontTumble }
         set { careDryingRaw = newValue.rawValue }
     }
     
     var ironing: CareIroning {
-        get { CareIroning(rawValue: careIroningRaw) ?? .no }
+        get { CareIroning(rawValue: careIroningRaw ?? "") ?? .no }
         set { careIroningRaw = newValue.rawValue }
     }
     
@@ -367,11 +368,11 @@ final class ClothingItem {
         purchaseLocation: String? = nil,
         purchaseUrl: URL? = nil,
         purchaseDate: Date? = nil,
-        washingMethod: CareWashingMethod = .machine,
-        washingTemperature: CareTemperature? = .warm30,
-        bleaching: CareBleaching = .dontBleach,
-        drying: CareDrying = .dontTumble,
-        ironing: CareIroning = .no,
+        washingMethod: CareWashingMethod? = nil,
+        washingTemperature: CareTemperature? = nil,
+        bleaching: CareBleaching? = nil,
+        drying: CareDrying? = nil,
+        ironing: CareIroning? = nil,
         careNotes: String? = nil,
         notes: String? = nil
     ) {
@@ -389,14 +390,26 @@ final class ClothingItem {
         self.purchaseLocation = purchaseLocation
         self.purchaseUrl = purchaseUrl
         self.purchaseDate = purchaseDate
-        self.careWashingMethodRaw = washingMethod.rawValue
+        self.purchaseUrl = purchaseUrl
+        self.purchaseDate = purchaseDate
+        self.careWashingMethodRaw = washingMethod?.rawValue
         self.careTemperatureRaw = washingTemperature?.rawValue
-        self.careBleachingRaw = bleaching.rawValue
-        self.careDryingRaw = drying.rawValue
-        self.careIroningRaw = ironing.rawValue
+        self.careBleachingRaw = bleaching?.rawValue
+        self.careDryingRaw = drying?.rawValue
+        self.careIroningRaw = ironing?.rawValue
         self.careNotes = careNotes
         self.notes = notes
     }
+}
+
+// Helper for persisting canvas layout
+struct OutfitLayoutItem: Codable {
+    let itemId: UUID
+    let x: Double
+    let y: Double
+    let scale: Double
+    let rotationDegrees: Double
+    let zIndex: Int
 }
 
 @Model
@@ -405,6 +418,8 @@ final class Outfit {
     var seasonsRaw: [String]
     var notes: String?
     var isFavorite: Bool = false
+    @Attribute(.externalStorage) var canvasImageData: Data?
+    @Attribute(.externalStorage) var layoutData: Data? // JSON of [OutfitLayoutItem]
     var createdAt: Date = Date()
     
     @Relationship var items: [ClothingItem]?
@@ -415,11 +430,13 @@ final class Outfit {
         set { seasonsRaw = newValue.map { $0.rawValue } }
     }
     
-    init(items: [ClothingItem] = [], seasons: Set<Season> = [], notes: String? = nil) {
+    init(items: [ClothingItem] = [], seasons: Set<Season> = [], notes: String? = nil, canvasImageData: Data? = nil, layoutData: Data? = nil) {
         self.id = UUID()
         self.items = items
         self.seasonsRaw = seasons.map { $0.rawValue }
         self.notes = notes
+        self.canvasImageData = canvasImageData
+        self.layoutData = layoutData
     }
 }
 

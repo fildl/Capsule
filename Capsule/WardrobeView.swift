@@ -2,7 +2,7 @@
 //  WardrobeView.swift
 //  Capsule
 //
-//  Created by Capsule Assistant on 05/12/25.
+//  Created by Filippo Di Ludovico on 05/12/25.
 //
 
 import SwiftUI
@@ -10,6 +10,7 @@ import SwiftUI
 struct WardrobeView: View {
     @State private var selectedSegment = 0
     @State private var isShowingAddItem = false
+    @State private var isShowingOutfitBuilder = false
     
     var body: some View {
         NavigationStack {
@@ -24,11 +25,7 @@ struct WardrobeView: View {
                 if selectedSegment == 0 {
                     ItemGridView()
                 } else {
-                    ContentUnavailableView(
-                        "No Outfits Yet",
-                        systemImage: "square.grid.2x2",
-                        description: Text("Create outfits from your items")
-                    )
+                    OutfitGridView()
                 }
                 
                 Spacer()
@@ -37,7 +34,11 @@ struct WardrobeView: View {
             .toolbar {
                 ToolbarItem(placement: .primaryAction) {
                     Button(action: {
-                        isShowingAddItem = true
+                        if selectedSegment == 0 {
+                            isShowingAddItem = true
+                        } else {
+                            isShowingOutfitBuilder = true
+                        }
                     }) {
                         Image(systemName: "plus")
                     }
@@ -45,6 +46,9 @@ struct WardrobeView: View {
             }
             .sheet(isPresented: $isShowingAddItem) {
                 AddItemView()
+            }
+            .sheet(isPresented: $isShowingOutfitBuilder) {
+                OutfitBuilderView()
             }
                 .padding(.bottom, 8) 
 

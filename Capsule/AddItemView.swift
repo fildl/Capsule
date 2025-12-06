@@ -2,7 +2,7 @@
 //  AddItemView.swift
 //  Capsule
 //
-//  Created by Capsule Assistant on 05/12/25.
+//  Created by Filippo Di Ludovico on 05/12/25.
 //
 
 import SwiftUI
@@ -13,9 +13,20 @@ struct AddItemView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
     
+    var itemToEdit: ClothingItem?
+    
     // MARK: - Image State
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImageData: Data?
+    @State private var originalImageData: Data?
+    @State private var bgRemovedImageData: Data? // Cache for the full BG-removed image
+    @State private var isBackgroundRemoved: Bool = false
+    @State private var isProcessingImage: Bool = false
+    @State private var isShowingEditor: Bool = false
+    
+    // Editor State
+    @State private var currentCropScale: CGFloat = 1.0
+    @State private var currentCropOffset: CGSize = .zero
     
     // MARK: - Form State
     @State private var mainCategory: MainCategory = .top
@@ -36,6 +47,7 @@ struct AddItemView: View {
     @State private var drying: CareDrying = .dontTumble
     @State private var ironing: CareIroning = .no
     @State private var careNotes: String = ""
+    @State private var addCareDetails: Bool = false
     @State private var notes: String = ""
     
     // MARK: - Collections
@@ -44,31 +56,122 @@ struct AddItemView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // Section 1: Image
+                // Section 1: Photo
                 Section {
                     if let selectedImageData, let uiImage = UIImage(data: selectedImageData) {
-                        Image(uiImage: uiImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxHeight: 300)
+                        ZStack(alignment: .bottomTrailing) {
+                            // The Image is the trigger for changing photo
+                            PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
+                                ZStack {
+                                    Image(uiImage: uiImage)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(maxHeight: 300)
+                                        .frame(maxWidth: .infinity)
+                                        .background(Color(.systemGray6))
+                                    
+                                    if isProcessingImage {
+                                        ZStack {
+                                            Color.black.opacity(0.4)
+                                            ProgressView()
+                                                .tint(.white)
+                                        }
+                                    }
+                                }
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            
+                            // Edit Button - Outside PhotosPicker
+                            Button {
+                                isShowingEditor = true
+                            } label: {
+                                Image(systemName: "crop")
+                                    .font(.title3)
+                                    .foregroundStyle(.white)
+                                    .padding(8)
+                                    .background(.black.opacity(0.6))
+                                    .clipShape(Circle())
+                            }
+                            .padding()
+                        }
+                    } else {
+                        // Placeholder Trigger
+                        PhotosPicker(selection: $selectedItem, matching: .images, photoLibrary: .shared()) {
+                            VStack {
+                                Image(systemName: "camera.fill")
+                                    .font(.system(size: 40))
+                                    .foregroundStyle(.gray)
+                                Text("Add Photo")
+                                    .foregroundStyle(.gray)
+                            }
                             .frame(maxWidth: .infinity)
-                            .listRowInsets(EdgeInsets())
+                            .frame(height: 200)
+                            .background(Color(.systemGray6))
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
-                    
-                    PhotosPicker(
-                        selection: $selectedItem,
-                        matching: .images,
-                        photoLibrary: .shared()
-                    ) {
-                        Label(
-                            selectedImageData == nil ? "Add Photo" : "Change Photo",
-                            systemImage: "photo"
-                        )
-                    }
-                    .onChange(of: selectedItem) { _, newItem in
-                        Task {
-                            if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                }
+                .listRowBackground(Color.clear)
+                .listRowInsets(EdgeInsets())
+                .onChange(of: selectedItem) {
+                    Task {
+                        if let data = try? await selectedItem?.loadTransferable(type: Data.self) {
+                            withAnimation {
                                 selectedImageData = data
+                                originalImageData = data
+                                bgRemovedImageData = nil // Reset cached BG removed
+                                isBackgroundRemoved = false // Reset toggle
+                                // Reset crop
+                                currentCropScale = 1.0
+                                currentCropOffset = .zero
+                            }
+                        }
+                    }
+                }
+                
+                if selectedImageData != nil {
+                    Section {
+                        Toggle(isOn: $isBackgroundRemoved) {
+                            Text("Remove Background")
+                        }
+                        .disabled(isProcessingImage)
+                        .onChange(of: isBackgroundRemoved) {
+                            Task {
+                                if isBackgroundRemoved {
+                                    // Switch to BG Removed
+                                    if let cached = bgRemovedImageData {
+                                        // Already have it
+                                        withAnimation {
+                                            selectedImageData = cached
+                                            // Reset crop when switching modes to be safe
+                                            currentCropScale = 1.0
+                                            currentCropOffset = .zero
+                                        }
+                                    } else {
+                                        // Need to process
+                                        guard let original = originalImageData else { return }
+                                        isProcessingImage = true
+                                        let processed = await ImageProcessing.removeBackground(from: original)
+                                        withAnimation {
+                                            if let processed {
+                                                bgRemovedImageData = processed
+                                                selectedImageData = processed
+                                                // Reset crop
+                                                currentCropScale = 1.0
+                                                currentCropOffset = .zero
+                                            }
+                                            isProcessingImage = false
+                                        }
+                                    }
+                                } else {
+                                    // Revert to Original
+                                    withAnimation {
+                                        selectedImageData = originalImageData
+                                        // Reset crop
+                                        currentCropScale = 1.0
+                                        currentCropOffset = .zero
+                                    }
+                                }
                             }
                         }
                     }
@@ -234,47 +337,52 @@ struct AddItemView: View {
                 }
                 
                 Section("Care Details") {
-                    Picker("Washing", selection: $washingMethod) {
-                        ForEach(CareWashingMethod.allCases) { method in
-                            Label(method.rawValue, systemImage: method.icon).tag(method)
-                        }
-                    }
+                    Toggle("Add Care Details", isOn: $addCareDetails.animation())
                     
-                    if washingMethod != .dontWash {
-                        Picker("Temperature", selection: $washingTemperature) {
-                            ForEach(CareTemperature.allCases) { temp in
-                                Text(temp.rawValue).tag(temp)
+                    if addCareDetails {
+                        Picker("Washing", selection: $washingMethod) {
+                            ForEach(CareWashingMethod.allCases) { method in
+                                Label(method.rawValue, systemImage: method.icon).tag(method)
                             }
                         }
-                    }
-                    
-                    Picker("Bleaching", selection: $bleaching) {
-                        ForEach(CareBleaching.allCases) { option in
-                            Label(option.rawValue, systemImage: option.icon).tag(option)
+                        
+                        if washingMethod != .dontWash {
+                            Picker("Temperature", selection: $washingTemperature) {
+                                ForEach(CareTemperature.allCases) { temp in
+                                    Text(temp.rawValue).tag(temp)
+                                }
+                            }
                         }
-                    }
-                    
-                    Picker("Drying", selection: $drying) {
-                        ForEach(CareDrying.allCases) { option in
-                            Label(option.rawValue, systemImage: option.icon).tag(option)
+                        
+                        Picker("Bleaching", selection: $bleaching) {
+                            ForEach(CareBleaching.allCases) { option in
+                                Label(option.rawValue, systemImage: option.icon).tag(option)
+                            }
                         }
-                    }
-                    
-                    Picker("Ironing", selection: $ironing) {
-                        ForEach(CareIroning.allCases) { option in
-                            Label(option.rawValue, systemImage: option.icon).tag(option)
+                        
+                        Picker("Drying", selection: $drying) {
+                            ForEach(CareDrying.allCases) { option in
+                                Label(option.rawValue, systemImage: option.icon).tag(option)
+                            }
                         }
+                        
+                        Picker("Ironing", selection: $ironing) {
+                            ForEach(CareIroning.allCases) { option in
+                                Label(option.rawValue, systemImage: option.icon).tag(option)
+                            }
+                        }
+                        
+                        TextField("Care Notes", text: $careNotes, axis: .vertical)
                     }
-                    
-                    TextField("Care Notes", text: $careNotes, axis: .vertical)
                 }
                 
                 // Section 6: Notes
                 Section("Notes") {
-                    TextField("General Notes", text: $notes, axis: .vertical)
+                    TextField("Add notes...", text: $notes, axis: .vertical)
+                        .lineLimit(3...6)
                 }
             }
-            .navigationTitle("New Item")
+            .navigationTitle(itemToEdit == nil ? "New Item" : "Edit Item")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -287,7 +395,7 @@ struct AddItemView: View {
                     Button("Save") {
                         saveItem()
                     }
-                    .disabled(selectedImageData == nil && subCategory.isEmpty) // Minimum validation
+                    .disabled(selectedImageData == nil && itemToEdit == nil) // Allow save if editing and keeping old image
                 }
                 
                 ToolbarItemGroup(placement: .keyboard) {
@@ -298,6 +406,34 @@ struct AddItemView: View {
                 }
             }
             .scrollDismissesKeyboard(.interactively)
+        }
+        .sheet(isPresented: $isShowingEditor) {
+            // Determine which base image to edit (Original or BG Removed)
+            // This ensures we always start with the full image, allowing non-destructive zoom/pan
+            let baseData = isBackgroundRemoved ? bgRemovedImageData : originalImageData
+            
+            if let baseData, let uiImage = UIImage(data: baseData) {
+                ImageEditorView(
+                    inputImage: uiImage,
+                    initialScale: currentCropScale,
+                    initialOffset: currentCropOffset
+                ) { editedImage, newScale, newOffset in
+                    withAnimation {
+                        if let data = editedImage.pngData() {
+                            // Update the display image
+                            selectedImageData = data
+                            // Persist the crop parameters so we can "resume" editing later
+                            currentCropScale = newScale
+                            currentCropOffset = newOffset
+                        }
+                    }
+                }
+            }
+        }
+        .onAppear {
+            if let item = itemToEdit {
+                loadItemData(item)
+            }
         }
     }
     
@@ -313,31 +449,121 @@ struct AddItemView: View {
         }
     }
     
-    private func saveItem() {
-        let newItem = ClothingItem(
-            imageData: selectedImageData,
-            mainCategory: mainCategory,
-            subCategory: subCategory,
-            brand: brand.isEmpty ? nil : brand,
-            size: size.isEmpty ? nil : size,
-            colors: selectedColors.map { $0.rawValue },
-            materialComposition: materialComposition.isEmpty ? nil : materialComposition,
-            seasons: selectedSeasons,
-            price: price,
-            purchaseStatus: purchaseStatus,
-            purchaseLocation: purchaseLocation.isEmpty ? nil : purchaseLocation,
-            purchaseUrl: URL(string: purchaseUrlString),
-            purchaseDate: addPurchaseDate ? purchaseDate : nil,
-            washingMethod: washingMethod,
-            washingTemperature: washingMethod == .dontWash ? nil : washingTemperature,
-            bleaching: bleaching,
-            drying: drying,
-            ironing: ironing,
-            careNotes: careNotes.isEmpty ? nil : careNotes,
-            notes: notes.isEmpty ? nil : notes
-        )
+    private func loadItemData(_ item: ClothingItem) {
+        // Image
+        selectedImageData = item.imageData
+        originalImageData = item.imageData // We assume stored is "original" or we treat it as base
+        // If we want to support non-destructive editing of ALREADY saved items, we'd need to store original separately in Model.
+        // For now, assume loaded image is the base.
         
-        modelContext.insert(newItem)
+        mainCategory = item.mainCategory
+        subCategory = item.subCategory
+        brand = item.brand ?? ""
+        size = item.size ?? ""
+        
+        // Color
+        selectedColors = Set(item.colors.compactMap { ClothingColor(rawValue: $0) })
+        
+        // Seasons
+        selectedSeasons = item.seasons
+        
+        materialComposition = item.materialComposition ?? ""
+        
+        // Care
+        if item.careWashingMethodRaw != nil {
+            addCareDetails = true
+            washingMethod = item.washingMethod
+            washingTemperature = item.washingTemperature ?? .warm30
+            bleaching = item.bleaching
+            drying = item.drying
+            ironing = item.ironing
+            careNotes = item.careNotes ?? ""
+        } else {
+            addCareDetails = false
+        }
+        
+        // Purchase
+        purchaseLocation = item.purchaseLocation ?? ""
+        purchaseUrlString = item.purchaseUrl?.absoluteString ?? ""
+        if let date = item.purchaseDate {
+            addPurchaseDate = true
+            purchaseDate = date
+        } else {
+            addPurchaseDate = false
+        }
+        price = item.price
+        purchaseStatus = item.purchaseStatus
+        
+        notes = item.notes ?? ""
+    }
+    
+    private func saveItem() {
+        guard let imageData = selectedImageData else { return }
+        
+        if let item = itemToEdit {
+            // Update Existing
+            item.imageData = imageData
+            item.mainCategory = mainCategory
+            item.subCategory = subCategory
+            item.brand = brand.isEmpty ? nil : brand
+            item.size = size.isEmpty ? nil : size
+            item.colors = selectedColors.map { $0.rawValue }
+            item.materialComposition = materialComposition.isEmpty ? nil : materialComposition
+            item.seasons = selectedSeasons
+            item.price = price
+            item.purchaseStatus = purchaseStatus
+            item.purchaseLocation = purchaseLocation.isEmpty ? nil : purchaseLocation
+            item.purchaseUrl = URL(string: purchaseUrlString)
+            item.purchaseDate = addPurchaseDate ? purchaseDate : nil
+            
+            // Care - Set Raw Values directly for control
+            if addCareDetails {
+                item.careWashingMethodRaw = washingMethod.rawValue
+                item.careTemperatureRaw = (washingMethod != .dontWash) ? washingTemperature.rawValue : nil
+                item.careBleachingRaw = bleaching.rawValue
+                item.careDryingRaw = drying.rawValue
+                item.careIroningRaw = ironing.rawValue
+                item.careNotes = careNotes.isEmpty ? nil : careNotes
+            } else {
+                item.careWashingMethodRaw = nil
+                item.careTemperatureRaw = nil
+                item.careBleachingRaw = nil
+                item.careDryingRaw = nil
+                item.careIroningRaw = nil
+                item.careNotes = nil
+            }
+            
+            item.notes = notes.isEmpty ? nil : notes
+            
+        } else {
+            // Create New
+            let newItem = ClothingItem(
+                imageData: imageData,
+                mainCategory: mainCategory,
+                subCategory: subCategory,
+                brand: brand.isEmpty ? nil : brand,
+                size: size.isEmpty ? nil : size,
+                colors: selectedColors.map { $0.rawValue },
+                materialComposition: materialComposition.isEmpty ? nil : materialComposition,
+                seasons: selectedSeasons,
+                price: price,
+                purchaseStatus: purchaseStatus,
+                purchaseLocation: purchaseLocation.isEmpty ? nil : purchaseLocation,
+                purchaseUrl: URL(string: purchaseUrlString),
+                purchaseDate: addPurchaseDate ? purchaseDate : nil,
+                // Pass nil if not adding care details
+                washingMethod: addCareDetails ? washingMethod : nil,
+                washingTemperature: (addCareDetails && washingMethod != .dontWash) ? washingTemperature : nil,
+                bleaching: addCareDetails ? bleaching : nil,
+                drying: addCareDetails ? drying : nil,
+                ironing: addCareDetails ? ironing : nil,
+                careNotes: (addCareDetails && !careNotes.isEmpty) ? careNotes : nil,
+                notes: notes.isEmpty ? nil : notes
+            )
+            
+            modelContext.insert(newItem)
+        }
+        
         dismiss()
     }
 }
