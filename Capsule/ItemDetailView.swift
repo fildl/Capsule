@@ -59,21 +59,23 @@ struct ItemDetailView: View {
                     
                     Divider()
                     
-                    // Main Info Grid
-                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 20) {
+                    // Basic Info Row (Left Aligned)
+                    HStack(alignment: .top, spacing: 60) {
                         InfoRow(title: "Category", value: item.mainCategory.rawValue)
                         
                         if let size = item.size, !size.isEmpty {
                             InfoRow(title: "Size", value: size)
                         }
-                        
-                        // Color View
-                        if !item.colors.isEmpty {
-                            VStack(alignment: .leading) {
-                                Text("Colors")
-                                    .font(.caption)
-                                    .foregroundStyle(.secondary)
-                                
+                    }
+                    
+                    // Colors
+                    if !item.colors.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Color")
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                            
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
                                 ForEach(item.colors, id: \.self) { colorName in
                                     if let colorEnum = ClothingColor(rawValue: colorName) {
                                         HStack {
@@ -83,6 +85,7 @@ struct ItemDetailView: View {
                                                 .overlay(Circle().stroke(Color.gray.opacity(0.3), lineWidth: 1))
                                             Text(colorEnum.rawValue)
                                                 .font(.body)
+                                            Spacer()
                                         }
                                     }
                                 }
@@ -92,7 +95,19 @@ struct ItemDetailView: View {
                     
                     Divider()
                     
-                    // Seasons
+                    // Fabric (Was Materials)
+                    if let materials = item.materialComposition, !materials.isEmpty {
+                         VStack(alignment: .leading, spacing: 8) {
+                            Text("FABRIC")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.secondary)
+                            Text(materials)
+                                .font(.body)
+                        }
+                        Divider()
+                    }
+                    
                     // Seasons
                     if !item.seasons.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
@@ -115,18 +130,41 @@ struct ItemDetailView: View {
                         Divider()
                     }
                     
-                    // Materials
-                    if let materials = item.materialComposition, !materials.isEmpty {
-                         VStack(alignment: .leading, spacing: 8) {
-                            Text("MATERIALS")
-                                .font(.caption)
-                                .fontWeight(.bold)
-                                .foregroundStyle(.secondary)
-                            Text(materials)
-                                .font(.body)
+                    // Purchase Info
+                    VStack(alignment: .leading, spacing: 8) {
+                         Text("PURCHASE INFO")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.secondary)
+                        
+                        if let location = item.purchaseLocation, !location.isEmpty {
+                            InfoRow(title: "Store / Website", value: location)
                         }
-                        Divider()
+                        
+                        if let url = item.purchaseUrl {
+                            Button {
+                                UIApplication.shared.open(url)
+                            } label: {
+                                HStack(alignment: .center, spacing: 4) {
+                                    Image(systemName: "link")
+                                    Text("Open Link")
+                                }
+                                .font(.subheadline)
+                                .foregroundColor(.blue)
+                            }
+                            .padding(.vertical, 2)
+                        }
+                        
+                        if let date = item.purchaseDate {
+                            InfoRow(title: "Date", value: date.formatted(date: .long, time: .omitted))
+                        }
+                        
+                        if let price = item.price, price > 0 {
+                             InfoRow(title: "Price", value: price.formatted(.currency(code: Locale.current.currency?.identifier ?? "EUR")))
+                        }
                     }
+                    
+                    Divider()
                     
                     // Care
                     VStack(alignment: .leading, spacing: 12) {
@@ -137,7 +175,7 @@ struct ItemDetailView: View {
                         
                         HStack(spacing: 20) {
                             // Washing
-                            if let washing = CareWashingMethod(rawValue: item.careWashingMethodRaw) {
+                            if let washing = CareWashingMethod(rawValue: item.careWashingMethodRaw ?? "") {
                                 CareIconView(icon: washing.icon, label: washing.rawValue)
                             }
                             // Temp
@@ -145,17 +183,17 @@ struct ItemDetailView: View {
                                 CareIconView(icon: "thermometer", label: temp.rawValue)
                             }
                             // Bleach
-                             if let bleach = CareBleaching(rawValue: item.careBleachingRaw) {
+                             if let bleach = CareBleaching(rawValue: item.careBleachingRaw ?? "") {
                                 CareIconView(icon: bleach.icon, label: bleach.rawValue)
                             }
                         }
                         HStack(spacing: 20) {
                              // Drying
-                             if let dry = CareDrying(rawValue: item.careDryingRaw) {
+                             if let dry = CareDrying(rawValue: item.careDryingRaw ?? "") {
                                 CareIconView(icon: dry.icon, label: dry.rawValue)
                             }
                             // Ironing
-                             if let iron = CareIroning(rawValue: item.careIroningRaw) {
+                             if let iron = CareIroning(rawValue: item.careIroningRaw ?? "") {
                                 CareIconView(icon: iron.icon, label: iron.rawValue)
                             }
                         }
@@ -168,25 +206,17 @@ struct ItemDetailView: View {
                         }
                     }
                     
-                    Divider()
-                    
-                    // Purchase Info
-                    VStack(alignment: .leading, spacing: 8) {
-                         Text("PURCHASE INFO")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundStyle(.secondary)
+                    // Notes
+                    if let notes = item.notes, !notes.isEmpty {
+                        Divider()
                         
-                        if let location = item.purchaseLocation, !location.isEmpty {
-                            InfoRow(title: "Store / Website", value: location)
-                        }
-                        
-                        if let date = item.purchaseDate {
-                            InfoRow(title: "Date", value: date.formatted(date: .long, time: .omitted))
-                        }
-                        
-                        if let price = item.price, price > 0 {
-                             InfoRow(title: "Price", value: price.formatted(.currency(code: Locale.current.currency?.identifier ?? "EUR")))
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("NOTES")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.secondary)
+                            Text(notes)
+                                .font(.body)
                         }
                     }
                 }

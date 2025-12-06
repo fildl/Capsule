@@ -47,6 +47,7 @@ struct AddItemView: View {
     @State private var drying: CareDrying = .dontTumble
     @State private var ironing: CareIroning = .no
     @State private var careNotes: String = ""
+    @State private var addCareDetails: Bool = false
     @State private var notes: String = ""
     
     // MARK: - Collections
@@ -336,39 +337,43 @@ struct AddItemView: View {
                 }
                 
                 Section("Care Details") {
-                    Picker("Washing", selection: $washingMethod) {
-                        ForEach(CareWashingMethod.allCases) { method in
-                            Label(method.rawValue, systemImage: method.icon).tag(method)
-                        }
-                    }
+                    Toggle("Add Care Details", isOn: $addCareDetails.animation())
                     
-                    if washingMethod != .dontWash {
-                        Picker("Temperature", selection: $washingTemperature) {
-                            ForEach(CareTemperature.allCases) { temp in
-                                Text(temp.rawValue).tag(temp)
+                    if addCareDetails {
+                        Picker("Washing", selection: $washingMethod) {
+                            ForEach(CareWashingMethod.allCases) { method in
+                                Label(method.rawValue, systemImage: method.icon).tag(method)
                             }
                         }
-                    }
-                    
-                    Picker("Bleaching", selection: $bleaching) {
-                        ForEach(CareBleaching.allCases) { option in
-                            Label(option.rawValue, systemImage: option.icon).tag(option)
+                        
+                        if washingMethod != .dontWash {
+                            Picker("Temperature", selection: $washingTemperature) {
+                                ForEach(CareTemperature.allCases) { temp in
+                                    Text(temp.rawValue).tag(temp)
+                                }
+                            }
                         }
-                    }
-                    
-                    Picker("Drying", selection: $drying) {
-                        ForEach(CareDrying.allCases) { option in
-                            Label(option.rawValue, systemImage: option.icon).tag(option)
+                        
+                        Picker("Bleaching", selection: $bleaching) {
+                            ForEach(CareBleaching.allCases) { option in
+                                Label(option.rawValue, systemImage: option.icon).tag(option)
+                            }
                         }
-                    }
-                    
-                    Picker("Ironing", selection: $ironing) {
-                        ForEach(CareIroning.allCases) { option in
-                            Label(option.rawValue, systemImage: option.icon).tag(option)
+                        
+                        Picker("Drying", selection: $drying) {
+                            ForEach(CareDrying.allCases) { option in
+                                Label(option.rawValue, systemImage: option.icon).tag(option)
+                            }
                         }
+                        
+                        Picker("Ironing", selection: $ironing) {
+                            ForEach(CareIroning.allCases) { option in
+                                Label(option.rawValue, systemImage: option.icon).tag(option)
+                            }
+                        }
+                        
+                        TextField("Care Notes", text: $careNotes, axis: .vertical)
                     }
-                    
-                    TextField("Care Notes", text: $careNotes, axis: .vertical)
                 }
                 
                 // Section 6: Notes
@@ -465,12 +470,17 @@ struct AddItemView: View {
         materialComposition = item.materialComposition ?? ""
         
         // Care
-        washingMethod = item.washingMethod
-        washingTemperature = item.washingTemperature ?? .warm30
-        bleaching = item.bleaching
-        drying = item.drying
-        ironing = item.ironing
-        careNotes = item.careNotes ?? ""
+        if item.careWashingMethodRaw != nil {
+            addCareDetails = true
+            washingMethod = item.washingMethod
+            washingTemperature = item.washingTemperature ?? .warm30
+            bleaching = item.bleaching
+            drying = item.drying
+            ironing = item.ironing
+            careNotes = item.careNotes ?? ""
+        } else {
+            addCareDetails = false
+        }
         
         // Purchase
         purchaseLocation = item.purchaseLocation ?? ""
@@ -505,12 +515,24 @@ struct AddItemView: View {
             item.purchaseLocation = purchaseLocation.isEmpty ? nil : purchaseLocation
             item.purchaseUrl = URL(string: purchaseUrlString)
             item.purchaseDate = addPurchaseDate ? purchaseDate : nil
-            item.washingMethod = washingMethod
-            item.washingTemperature = washingMethod == .dontWash ? nil : washingTemperature
-            item.bleaching = bleaching
-            item.drying = drying
-            item.ironing = ironing
-            item.careNotes = careNotes.isEmpty ? nil : careNotes
+            
+            // Care - Set Raw Values directly for control
+            if addCareDetails {
+                item.careWashingMethodRaw = washingMethod.rawValue
+                item.careTemperatureRaw = (washingMethod != .dontWash) ? washingTemperature.rawValue : nil
+                item.careBleachingRaw = bleaching.rawValue
+                item.careDryingRaw = drying.rawValue
+                item.careIroningRaw = ironing.rawValue
+                item.careNotes = careNotes.isEmpty ? nil : careNotes
+            } else {
+                item.careWashingMethodRaw = nil
+                item.careTemperatureRaw = nil
+                item.careBleachingRaw = nil
+                item.careDryingRaw = nil
+                item.careIroningRaw = nil
+                item.careNotes = nil
+            }
+            
             item.notes = notes.isEmpty ? nil : notes
             
         } else {
@@ -529,12 +551,13 @@ struct AddItemView: View {
                 purchaseLocation: purchaseLocation.isEmpty ? nil : purchaseLocation,
                 purchaseUrl: URL(string: purchaseUrlString),
                 purchaseDate: addPurchaseDate ? purchaseDate : nil,
-                washingMethod: washingMethod,
-                washingTemperature: washingMethod == .dontWash ? nil : washingTemperature,
-                bleaching: bleaching,
-                drying: drying,
-                ironing: ironing,
-                careNotes: careNotes.isEmpty ? nil : careNotes,
+                // Pass nil if not adding care details
+                washingMethod: addCareDetails ? washingMethod : nil,
+                washingTemperature: (addCareDetails && washingMethod != .dontWash) ? washingTemperature : nil,
+                bleaching: addCareDetails ? bleaching : nil,
+                drying: addCareDetails ? drying : nil,
+                ironing: addCareDetails ? ironing : nil,
+                careNotes: (addCareDetails && !careNotes.isEmpty) ? careNotes : nil,
                 notes: notes.isEmpty ? nil : notes
             )
             

@@ -297,11 +297,12 @@ final class ClothingItem {
     var purchaseDate: Date?
     
     // Care
-    var careWashingMethodRaw: String
+    // Care
+    var careWashingMethodRaw: String?
     var careTemperatureRaw: String?
-    var careBleachingRaw: String
-    var careDryingRaw: String
-    var careIroningRaw: String
+    var careBleachingRaw: String?
+    var careDryingRaw: String?
+    var careIroningRaw: String?
     var careNotes: String?
     
     // Meta
@@ -329,7 +330,7 @@ final class ClothingItem {
     }
     
     var washingMethod: CareWashingMethod {
-        get { CareWashingMethod(rawValue: careWashingMethodRaw) ?? .machine }
+        get { CareWashingMethod(rawValue: careWashingMethodRaw ?? "") ?? .machine }
         set { careWashingMethodRaw = newValue.rawValue }
     }
     
@@ -339,17 +340,17 @@ final class ClothingItem {
     }
     
     var bleaching: CareBleaching {
-        get { CareBleaching(rawValue: careBleachingRaw) ?? .dontBleach }
+        get { CareBleaching(rawValue: careBleachingRaw ?? "") ?? .dontBleach }
         set { careBleachingRaw = newValue.rawValue }
     }
     
     var drying: CareDrying {
-        get { CareDrying(rawValue: careDryingRaw) ?? .dontTumble }
+        get { CareDrying(rawValue: careDryingRaw ?? "") ?? .dontTumble }
         set { careDryingRaw = newValue.rawValue }
     }
     
     var ironing: CareIroning {
-        get { CareIroning(rawValue: careIroningRaw) ?? .no }
+        get { CareIroning(rawValue: careIroningRaw ?? "") ?? .no }
         set { careIroningRaw = newValue.rawValue }
     }
     
@@ -367,11 +368,11 @@ final class ClothingItem {
         purchaseLocation: String? = nil,
         purchaseUrl: URL? = nil,
         purchaseDate: Date? = nil,
-        washingMethod: CareWashingMethod = .machine,
-        washingTemperature: CareTemperature? = .warm30,
-        bleaching: CareBleaching = .dontBleach,
-        drying: CareDrying = .dontTumble,
-        ironing: CareIroning = .no,
+        washingMethod: CareWashingMethod? = nil,
+        washingTemperature: CareTemperature? = nil,
+        bleaching: CareBleaching? = nil,
+        drying: CareDrying? = nil,
+        ironing: CareIroning? = nil,
         careNotes: String? = nil,
         notes: String? = nil
     ) {
@@ -389,11 +390,13 @@ final class ClothingItem {
         self.purchaseLocation = purchaseLocation
         self.purchaseUrl = purchaseUrl
         self.purchaseDate = purchaseDate
-        self.careWashingMethodRaw = washingMethod.rawValue
+        self.purchaseUrl = purchaseUrl
+        self.purchaseDate = purchaseDate
+        self.careWashingMethodRaw = washingMethod?.rawValue
         self.careTemperatureRaw = washingTemperature?.rawValue
-        self.careBleachingRaw = bleaching.rawValue
-        self.careDryingRaw = drying.rawValue
-        self.careIroningRaw = ironing.rawValue
+        self.careBleachingRaw = bleaching?.rawValue
+        self.careDryingRaw = drying?.rawValue
+        self.careIroningRaw = ironing?.rawValue
         self.careNotes = careNotes
         self.notes = notes
     }
