@@ -402,6 +402,16 @@ final class ClothingItem {
     }
 }
 
+// Helper for persisting canvas layout
+struct OutfitLayoutItem: Codable {
+    let itemId: UUID
+    let x: Double
+    let y: Double
+    let scale: Double
+    let rotationDegrees: Double
+    let zIndex: Int
+}
+
 @Model
 final class Outfit {
     var id: UUID
@@ -409,6 +419,7 @@ final class Outfit {
     var notes: String?
     var isFavorite: Bool = false
     @Attribute(.externalStorage) var canvasImageData: Data?
+    @Attribute(.externalStorage) var layoutData: Data? // JSON of [OutfitLayoutItem]
     var createdAt: Date = Date()
     
     @Relationship var items: [ClothingItem]?
@@ -419,12 +430,13 @@ final class Outfit {
         set { seasonsRaw = newValue.map { $0.rawValue } }
     }
     
-    init(items: [ClothingItem] = [], seasons: Set<Season> = [], notes: String? = nil, canvasImageData: Data? = nil) {
+    init(items: [ClothingItem] = [], seasons: Set<Season> = [], notes: String? = nil, canvasImageData: Data? = nil, layoutData: Data? = nil) {
         self.id = UUID()
         self.items = items
         self.seasonsRaw = seasons.map { $0.rawValue }
         self.notes = notes
         self.canvasImageData = canvasImageData
+        self.layoutData = layoutData
     }
 }
 

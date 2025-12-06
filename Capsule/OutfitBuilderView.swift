@@ -2,7 +2,7 @@
 //  OutfitBuilderView.swift
 //  Capsule
 //
-//  Created by Capsule Assistant on 06/12/25.
+//  Created by Filippo Di Ludovico on 06/12/25.
 //
 
 import SwiftUI
@@ -13,6 +13,8 @@ struct OutfitBuilderView: View {
     @Environment(\.dismiss) private var dismiss
     
     @Query(sort: \ClothingItem.createdAt, order: .reverse) private var allItems: [ClothingItem]
+    
+    var outfitToEdit: Outfit?
     
     // Canvas State
     @State private var placedItems: [PlacedItem] = []
@@ -109,7 +111,7 @@ struct OutfitBuilderView: View {
                 }
                 .zIndex(0)
             }
-            .navigationTitle("New Outfit")
+            .navigationTitle(outfitToEdit == nil ? "New Outfit" : "Edit Outfit")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -133,6 +135,11 @@ struct OutfitBuilderView: View {
                     onSave: saveOutfit
                 )
             }
+            .onAppear {
+                if let outfit = outfitToEdit, placedItems.isEmpty {
+                    loadOutfitData(outfit)
+                }
+            }
         }
     }
     
@@ -148,7 +155,7 @@ struct OutfitBuilderView: View {
     }
     
     private func addItemToCanvas(_ item: ClothingItem) {
-        // Add to center with slight random offset so they don't stack perfectly
+        // Add to center with slight random offset
         let offset = CGSize(
             width: CGFloat.random(in: -20...20),
             height: CGFloat.random(in: -20...20)
@@ -158,38 +165,99 @@ struct OutfitBuilderView: View {
         selectedPlacedItemId = newItem.id
     }
     
+    private func loadOutfitData(_ outfit: Outfit) {
+        notes = outfit.notes ?? ""
+        selectedSeasons = outfit.seasons
+        
+        // Restore Layout
+        if let layoutData = outfit.layoutData,
+           let layoutItems = try? JSONDecoder().decode([OutfitLayoutItem].self, from: layoutData) {
+            
+            // Map saved layout back to PlacedItems by matching with allItems
+            // We use allItems query to ensure we have the live SwiftData objects
+            var newPlacedItems: [PlacedItem] = []
+            
+            for layoutItem in layoutItems {
+                if let clothingItem = allItems.first(where: { $0.id == layoutItem.itemId }) {
+                    let placed = PlacedItem(
+                        item: clothingItem,
+                        offset: CGSize(width: layoutItem.x, height: layoutItem.y),
+                        scale: layoutItem.scale,
+                        rotation: Angle(degrees: layoutItem.rotationDegrees)
+                    )
+                    newPlacedItems.append(placed)
+                }
+            }
+            placedItems = newPlacedItems
+            
+        } else if let items = outfit.items {
+            // Fallback for outfits without layout data
+            // Just place them in a default arrangement
+            placedItems = items.map { item in
+                PlacedItem(
+                    item: item,
+                    offset: CGSize(width: CGFloat.random(in: -30...30), height: CGFloat.random(in: -30...30))
+                )
+            }
+        }
+    }
+    
     @MainActor
     private func saveOutfit() {
         // Generate Snapshot
         let renderer = ImageRenderer(content:
             ZStack {
-                Color.white // White background for the saved image
+                Color.white // White background
                 ForEach(placedItems) { placedItem in
                     if let data = placedItem.item.imageData, let uiImage = UIImage(data: data) {
                         Image(uiImage: uiImage)
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 150) // Base size matches CanvasItemView
+                            .frame(width: 150)
                             .scaleEffect(placedItem.scale)
                             .rotationEffect(placedItem.rotation)
                             .offset(placedItem.offset)
                     }
                 }
             }
-            .frame(width: 400, height: 400) // Fixed standard size for saved outfit
+            .frame(width: 400, height: 400)
         )
         
         let canvasData = renderer.uiImage?.pngData()
         let items = placedItems.map { $0.item }
         
-        let outfit = Outfit(
-            items: items,
-            seasons: selectedSeasons,
-            notes: notes.isEmpty ? nil : notes,
-            canvasImageData: canvasData
-        )
+        // Serialize Layout
+        let layoutItems = placedItems.map { placed in
+            OutfitLayoutItem(
+                itemId: placed.item.id,
+                x: placed.offset.width,
+                y: placed.offset.height,
+                scale: placed.scale,
+                rotationDegrees: placed.rotation.degrees,
+                zIndex: 0 // Not fully using z-index logic yet other than array order
+            )
+        }
+        let layoutData = try? JSONEncoder().encode(layoutItems)
         
-        modelContext.insert(outfit)
+        if let outfit = outfitToEdit {
+            // Update Existing
+            outfit.items = items
+            outfit.seasons = selectedSeasons
+            outfit.notes = notes.isEmpty ? nil : notes
+            outfit.canvasImageData = canvasData
+            outfit.layoutData = layoutData
+        } else {
+            // Create New
+            let outfit = Outfit(
+                items: items,
+                seasons: selectedSeasons,
+                notes: notes.isEmpty ? nil : notes,
+                canvasImageData: canvasData,
+                layoutData: layoutData
+            )
+            modelContext.insert(outfit)
+        }
+        
         dismiss()
     }
 }

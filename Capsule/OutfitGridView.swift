@@ -2,7 +2,7 @@
 //  OutfitGridView.swift
 //  Capsule
 //
-//  Created by Capsule Assistant on 06/12/25.
+//  Created by Filippo Di Ludovico on 06/12/25.
 //
 
 import SwiftUI
@@ -26,7 +26,10 @@ struct OutfitGridView: View {
             ScrollView {
                 LazyVGrid(columns: columns, spacing: 16) {
                     ForEach(outfits) { outfit in
-                        OutfitCard(outfit: outfit)
+                        NavigationLink(destination: OutfitDetailView(outfit: outfit)) {
+                            OutfitCard(outfit: outfit)
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
                 }
                 .padding()
