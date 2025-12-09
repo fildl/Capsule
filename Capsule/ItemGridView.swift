@@ -12,7 +12,7 @@ struct ItemGridView: View {
     @Query(sort: \ClothingItem.createdAt, order: .reverse) private var items: [ClothingItem]
     
     private let columns = [
-        GridItem(.adaptive(minimum: 150, maximum: 200), spacing: 16)
+        GridItem(.adaptive(minimum: 110), spacing: 8)
     ]
     
     var body: some View {
@@ -24,15 +24,22 @@ struct ItemGridView: View {
             )
         } else {
             ScrollView {
-                LazyVGrid(columns: columns, spacing: 16) {
+                LazyVGrid(columns: columns, spacing: 8) {
                     ForEach(items) { item in
                         NavigationLink(destination: ItemDetailView(item: item)) {
                             ItemCard(item: item)
                         }
                         .buttonStyle(PlainButtonStyle())
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                // Delete logic setup
+                            } label: {
+                                Label("Delete", systemImage: "trash")
+                            }
+                        }
                     }
                 }
-                .padding()
+                .padding(8)
             }
         }
     }
@@ -42,45 +49,26 @@ struct ItemCard: View {
     let item: ClothingItem
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Image Area
-            GeometryReader { geometry in
-                if let data = item.imageData, let uiImage = UIImage(data: data) {
-                    Image(uiImage: uiImage)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: geometry.size.width, height: geometry.size.height)
-                        .clipped()
-                } else {
-                    ZStack {
-                        Color.gray.opacity(0.1)
-                        Image(systemName: "photo")
-                            .foregroundStyle(.secondary)
-                    }
-                }
-            }
-            .aspectRatio(3/4, contentMode: .fit)
-            .clipped()
-            
-            // Info Area
-            VStack(alignment: .leading, spacing: 4) {
-                Text(item.subCategory.isEmpty ? item.mainCategory.rawValue : item.subCategory)
-                    .font(.subheadline)
-                    .fontWeight(.medium)
-                    .lineLimit(1)
-                
-                if let brand = item.brand, !brand.isEmpty {
-                    Text(brand)
-                        .font(.caption)
+        GeometryReader { geometry in
+            if let data = item.imageData, let uiImage = UIImage(data: data) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: geometry.size.width, height: geometry.size.width)
+                    .clipped()
+            } else {
+                ZStack {
+                    Color(.systemGray6)
+                    Image(systemName: "photo")
                         .foregroundStyle(.secondary)
-                        .lineLimit(1)
                 }
             }
-            .padding(12)
         }
-        .background(Color(.systemBackground))
-        .cornerRadius(12)
-        .shadow(color: .black.opacity(0.1), radius: 5, x: 0, y: 2)
+
+        .aspectRatio(1, contentMode: .fit)
+        .background(Color(.secondarySystemGroupedBackground))
+        .cornerRadius(16)
+        .shadow(color: Color.black.opacity(0.1), radius: 4, x: 0, y: 2)
     }
 }
 
