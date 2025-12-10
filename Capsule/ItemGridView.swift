@@ -9,18 +9,22 @@ import SwiftUI
 import SwiftData
 
 struct ItemGridView: View {
-    @Query(sort: \ClothingItem.createdAt, order: .reverse) private var items: [ClothingItem]
+    @Query private var items: [ClothingItem]
     
     private let columns = [
         GridItem(.adaptive(minimum: 110), spacing: 8)
     ]
     
+    init(sort: [SortDescriptor<ClothingItem>], predicate: Predicate<ClothingItem>?) {
+        _items = Query(filter: predicate, sort: sort)
+    }
+    
     var body: some View {
         if items.isEmpty {
             ContentUnavailableView(
-                "No Items Yet",
-                systemImage: "tshirt",
-                description: Text("Tap + to add your first item")
+                "No Items Found",
+                systemImage: "magnifyingglass",
+                description: Text("Try adjusting your filters")
             )
         } else {
             ScrollView {
@@ -73,6 +77,6 @@ struct ItemCard: View {
 }
 
 #Preview {
-    ItemGridView()
+    ItemGridView(sort: [], predicate: nil)
         .modelContainer(for: ClothingItem.self, inMemory: true)
 }

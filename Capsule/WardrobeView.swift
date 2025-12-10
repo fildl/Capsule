@@ -6,16 +6,41 @@
 //
 
 import SwiftUI
+import SwiftData
 
 struct WardrobeView: View {
+    @Query private var allItems: [ClothingItem] // For metadata extraction for filters
+    
     @State private var selectedSegment = 0
     @State private var isShowingAddItem = false
     @State private var isShowingOutfitBuilder = false
     @State private var isShowingSettings = false
+    @State private var isShowingSortFilter = false
+    
+    // Sort & Filter State
+    @State private var sortOption: SortOption = .dateCreatedDesc
+    @State private var filterCriteria = FilterCriteria()
+    
+    var availableBrands: [String] {
+        let userBrands = allItems.compactMap { $0.brand }.filter { !$0.isEmpty }
+        let all = Set(popularBrands + userBrands)
+        return Array(all).sorted()
+    }
+    
+    var availableColors: [ClothingColor] {
+        let userColors = Set(allItems.flatMap { $0.colors })
+        // Filter ClothingColor enum cases that are present in user data
+        // Or if user wants ALL options, we can just show all.
+        // Dynamic filter usually implies "show what I have".
+        // Let's show all for now to allow filtering for things you MIGHT add? No, usually "Filter by Red" implies find red things.
+        // Let's filter ClothingColor.allCases where rawValue is in userKey.
+        // BUT, items store colors as Strings.
+        return ClothingColor.allCases.filter { userColors.contains($0.rawValue) }
+    }
     
     var body: some View {
         NavigationStack {
-            VStack {
+            VStack(spacing: 12) {
                 Picker("View Mode", selection: $selectedSegment) {
                     Text("Items").tag(0)
                     Text("Outfits").tag(1)
@@ -23,10 +48,64 @@ struct WardrobeView: View {
                 .pickerStyle(.segmented)
                 .padding(.horizontal)
                 
+                // Sort & Filter Controls
+                HStack(spacing: 12) {
+                    // Sort Menu
+                    Menu {
+                        Picker("Sort By", selection: $sortOption) {
+                            ForEach(SortOption.allCases) { option in
+                                Text(option.rawValue).tag(option)
+                            }
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "arrow.up.arrow.down")
+                            Text("Sort")
+                            Spacer()
+                            Text(sortOption.rawValue)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(Color(.secondarySystemBackground))
+                        .cornerRadius(12)
+                    }
+                    .buttonStyle(.plain)
+                    
+                    // Filter Button
+                    Button {
+                        isShowingSortFilter = true
+                    } label: {
+                        HStack {
+                            Image(systemName: "line.3.horizontal.decrease.circle")
+                                .symbolVariant(filterCriteria.hasActiveFilters ? .fill : .none)
+                            Text("Filter")
+                        }
+                        .padding(.vertical, 8)
+                        .padding(.horizontal, 12)
+                        .background(filterCriteria.hasActiveFilters ? Color.blue.opacity(0.1) : Color(.secondarySystemBackground))
+                        .cornerRadius(12)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12)
+                                .stroke(filterCriteria.hasActiveFilters ? Color.blue : Color.clear, lineWidth: 1)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(filterCriteria.hasActiveFilters ? .blue : .primary)
+                }
+                .padding(.horizontal)
+                
                 if selectedSegment == 0 {
-                    ItemGridView()
+                    ItemGridView(
+                        sort: sortOption.itemSortDescriptors,
+                        predicate: filterCriteria.itemPredicate
+                    )
                 } else {
-                    OutfitGridView()
+                    OutfitGridView(
+                        sort: sortOption.outfitSortDescriptors,
+                        predicate: filterCriteria.outfitPredicate
+                    )
                 }
                 
                 Spacer()
@@ -62,9 +141,191 @@ struct WardrobeView: View {
             .sheet(isPresented: $isShowingSettings) {
                 SettingsView()
             }
-                .padding(.bottom, 8) 
-
+            .sheet(isPresented: $isShowingSortFilter) {
+                FilterSheet(
+                    filterCriteria: $filterCriteria,
+                    availableBrands: availableBrands,
+                    availableColors: availableColors
+                )
+            }
+            .padding(.bottom, 8) 
         }
+    }
+}
+
+// MARK: - Sort & Filter Models
+
+enum SortOption: String, CaseIterable, Identifiable {
+    case dateCreatedDesc = "Newest First"
+    case dateCreatedAsc = "Oldest First"
+    case purchaseDateDesc = "Purchase Date (Newest)"
+    case purchaseDateAsc = "Purchase Date (Oldest)"
+    case priceHigh = "Price (High to Low)"
+    case priceLow = "Price (Low to High)"
+    
+    var id: String { rawValue }
+    
+    var itemSortDescriptors: [SortDescriptor<ClothingItem>] {
+        switch self {
+        case .dateCreatedDesc: return [SortDescriptor(\.createdAt, order: .reverse)]
+        case .dateCreatedAsc: return [SortDescriptor(\.createdAt, order: .forward)]
+        case .purchaseDateDesc: return [SortDescriptor(\.purchaseDate, order: .reverse)]
+        case .purchaseDateAsc: return [SortDescriptor(\.purchaseDate, order: .forward)]
+        case .priceHigh: return [SortDescriptor(\.price, order: .reverse)]
+        case .priceLow: return [SortDescriptor(\.price, order: .forward)]
+        }
+    }
+    
+    var outfitSortDescriptors: [SortDescriptor<Outfit>] {
+        switch self {
+        case .dateCreatedDesc: return [SortDescriptor(\.createdAt, order: .reverse)]
+        case .dateCreatedAsc: return [SortDescriptor(\.createdAt, order: .forward)]
+        default: return [SortDescriptor(\.createdAt, order: .reverse)]
+        }
+    }
+}
+
+struct FilterCriteria {
+    var selectedCategory: MainCategory? = nil
+    var selectedBrand: String? = nil
+    var selectedSeason: Season? = nil
+    var selectedColor: ClothingColor? = nil
+    
+    var hasActiveFilters: Bool {
+        selectedCategory != nil || selectedBrand != nil || selectedSeason != nil || selectedColor != nil
+    }
+    
+    var itemPredicate: Predicate<ClothingItem>? {
+        let catRaw = selectedCategory?.rawValue
+        let brandName = selectedBrand
+        let seasonRaw = selectedSeason?.rawValue
+        let colorRaw = selectedColor?.rawValue
+        
+        if catRaw == nil && brandName == nil && seasonRaw == nil && colorRaw == nil {
+            return nil
+        }
+        
+        let searchCategory = catRaw ?? ""
+        let searchBrand = brandName
+        let searchSeason = seasonRaw ?? ""
+        let searchColor = colorRaw ?? ""
+        
+        return #Predicate<ClothingItem> { item in
+            ((catRaw == nil || item.mainCategoryRaw == searchCategory) &&
+             (brandName == nil || item.brand == searchBrand)) &&
+            ((seasonRaw == nil || item.seasonsRaw.contains(searchSeason)) &&
+             (colorRaw == nil || item.colors.contains(searchColor)))
+        }
+    }
+    
+    var outfitPredicate: Predicate<Outfit>? {
+        let seasonRaw = selectedSeason?.rawValue
+        
+        if seasonRaw == nil {
+            return nil 
+        }
+        
+        return #Predicate<Outfit> { outfit in
+            (seasonRaw == nil || outfit.seasonsRaw.contains(seasonRaw!))
+        }
+    }
+}
+
+struct FilterSheet: View {
+    @Binding var filterCriteria: FilterCriteria
+    var availableBrands: [String]
+    var availableColors: [ClothingColor]
+    @Environment(\.dismiss) private var dismiss
+    
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Filter Items") {
+                     Picker("Category", selection: Binding(
+                        get: { filterCriteria.selectedCategory },
+                        set: { filterCriteria.selectedCategory = $0 }
+                     )) {
+                        Text("All Categories").tag(MainCategory?.none)
+                        ForEach(MainCategory.allCases) { cat in
+                            Text(cat.rawValue).tag(cat as MainCategory?)
+                        }
+                     }
+                    
+                    Picker("Brand", selection: Binding(
+                       get: { filterCriteria.selectedBrand },
+                       set: { filterCriteria.selectedBrand = $0 }
+                    )) {
+                       Text("All Brands").tag(String?.none)
+                       ForEach(availableBrands, id: \.self) { brand in
+                           Text(brand).tag(brand as String?)
+                       }
+                    }
+                    .pickerStyle(.navigationLink)
+                    
+                    Picker("Season", selection: Binding(
+                        get: { filterCriteria.selectedSeason },
+                        set: { filterCriteria.selectedSeason = $0 }
+                    )) {
+                        Text("All Seasons").tag(Season?.none)
+                        ForEach(Season.allCases) { season in
+                            Text(season.rawValue).tag(season as Season?)
+                        }
+                    }
+                    
+                    // Colors
+                    VStack(alignment: .leading) {
+                        Text("Color")
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack {
+                                ForEach(availableColors) { color in
+                                    ZStack {
+                                        Circle()
+                                            .fill(color.color)
+                                            .frame(width: 32, height: 32)
+                                            .overlay(Circle().stroke(Color.gray.opacity(0.2)))
+                                        
+                                        if filterCriteria.selectedColor == color {
+                                            Image(systemName: "checkmark")
+                                                .font(.caption)
+                                                .foregroundStyle(.white) // or contrasting
+                                        }
+                                    }
+                                    .onTapGesture {
+                                        if filterCriteria.selectedColor == color {
+                                            filterCriteria.selectedColor = nil
+                                        } else {
+                                            filterCriteria.selectedColor = color
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 4)
+                        }
+                    }
+                }
+                
+                if filterCriteria.hasActiveFilters {
+                    Section {
+                        Button("Clear Filters") {
+                            filterCriteria.selectedCategory = nil
+                            filterCriteria.selectedBrand = nil
+                            filterCriteria.selectedSeason = nil
+                            filterCriteria.selectedColor = nil
+                        }
+                        .foregroundStyle(.red)
+                    }
+                }
+            }
+            .navigationTitle("Filters")
+            .toolbar {
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Done") {
+                        dismiss()
+                    }
+                }
+            }
+        }
+        .presentationDetents([.medium, .large])
     }
 }
 

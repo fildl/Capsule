@@ -9,18 +9,22 @@ import SwiftUI
 import SwiftData
 
 struct OutfitGridView: View {
-    @Query(sort: \Outfit.createdAt, order: .reverse) private var outfits: [Outfit]
+    @Query private var outfits: [Outfit]
     
     private let columns = [
         GridItem(.adaptive(minimum: 110), spacing: 8)
     ]
     
+    init(sort: [SortDescriptor<Outfit>], predicate: Predicate<Outfit>?) {
+        _outfits = Query(filter: predicate, sort: sort)
+    }
+    
     var body: some View {
         if outfits.isEmpty {
             ContentUnavailableView(
-                "No Outfits Yet",
-                systemImage: "square.grid.2x2",
-                description: Text("Create your first outfit by tapping +")
+                "No Outfits Found",
+                systemImage: "magnifyingglass",
+                description: Text("Try adjusting your filters or add a new outfit")
             )
         } else {
             ScrollView {
@@ -32,7 +36,7 @@ struct OutfitGridView: View {
                         .buttonStyle(PlainButtonStyle())
                         .contextMenu {
                             Button(role: .destructive) {
-                                // Delete logic
+                                // Delete Logic Setup
                             } label: {
                                 Label("Delete", systemImage: "trash")
                             }
