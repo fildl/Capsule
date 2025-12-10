@@ -98,10 +98,11 @@ struct ItemDetailView: View {
                         }
                     }
                     
-                    Divider()
+
                     
                     // Fabric (Was Materials)
                     if let materials = item.materialComposition, !materials.isEmpty {
+                         Divider()
                          VStack(alignment: .leading, spacing: 8) {
                             Text("FABRIC")
                                 .font(.caption)
@@ -110,11 +111,11 @@ struct ItemDetailView: View {
                             Text(materials)
                                 .font(.body)
                         }
-                        Divider()
                     }
                     
                     // Seasons
                     if !item.seasons.isEmpty {
+                        Divider()
                         VStack(alignment: .leading, spacing: 8) {
                             Text("SEASONS")
                                 .font(.caption)
@@ -132,7 +133,6 @@ struct ItemDetailView: View {
                                 }
                             }
                         }
-                        Divider()
                     }
                     
                     // Purchase Info
@@ -140,6 +140,8 @@ struct ItemDetailView: View {
                         item.purchaseUrl != nil ||
                         item.purchaseDate != nil ||
                         (item.price != nil && item.price! > 0) {
+                        
+                        Divider()
                         
                         VStack(alignment: .leading, spacing: 8) {
                             Text("PURCHASE INFO")
