@@ -129,7 +129,7 @@ struct ItemDetailView: View {
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
                                         .background(Color(.systemGray6))
-                                        .cornerRadius(8)
+                                        .cornerRadius(12)
                                 }
                             }
                         }

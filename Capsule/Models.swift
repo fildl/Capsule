@@ -298,9 +298,9 @@ final class ClothingItem {
     // Details
     var brand: String?
     var size: String?
-    var colors: [String] // Hex codes or names
+    @Attribute var colors: [String] // Hex codes or names
     var materialComposition: String?
-    var seasonsRaw: [String] // Stored as array of raw strings
+    @Attribute var seasonsRaw: [String] // Stored as array of raw strings
     
     // Purchase Info
     var price: Decimal?

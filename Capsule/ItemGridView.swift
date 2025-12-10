@@ -27,13 +27,41 @@ struct ItemGridView: View {
         GridItem(.adaptive(minimum: 110), spacing: 8)
     ]
     
-    init(sort: [SortDescriptor<ClothingItem>], predicate: Predicate<ClothingItem>?) {
+    // Filters
+    let filterSeason: Season?
+    let filterColors: Set<ClothingColor>
+    
+    init(sort: [SortDescriptor<ClothingItem>], predicate: Predicate<ClothingItem>?, filterSeason: Season?, filterColors: Set<ClothingColor>) {
         _items = Query(filter: predicate, sort: sort)
+        self.filterSeason = filterSeason
+        self.filterColors = filterColors
+    }
+    
+    var filteredItems: [ClothingItem] {
+        if filterSeason == nil && filterColors.isEmpty {
+            return items
+        }
+        
+        return items.filter { item in
+            // Season Check
+            if let season = filterSeason, !item.seasonsRaw.contains(season.rawValue) {
+                return false
+            }
+            // Color Check (Must contain ALL selected)
+            if !filterColors.isEmpty {
+                let itemColorSet = Set(item.colors)
+                let requiredColorSet = Set(filterColors.map { $0.rawValue })
+                if !requiredColorSet.isSubset(of: itemColorSet) {
+                    return false
+                }
+            }
+            return true
+        }
     }
     
     var body: some View {
         Group {
-            if items.isEmpty {
+            if filteredItems.isEmpty {
                 ContentUnavailableView(
                     "No Items Found",
                     systemImage: "magnifyingglass",
@@ -42,7 +70,7 @@ struct ItemGridView: View {
             } else {
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 8) {
-                        ForEach(items) { item in
+                        ForEach(filteredItems) { item in
                             NavigationLink(destination: ItemDetailView(item: item)) {
                                 ItemCard(item: item)
                             }
@@ -158,6 +186,6 @@ struct ItemCard: View {
 }
 
 #Preview {
-    ItemGridView(sort: [], predicate: nil)
+    ItemGridView(sort: [], predicate: nil, filterSeason: nil, filterColors: [])
         .modelContainer(for: ClothingItem.self, inMemory: true)
 }

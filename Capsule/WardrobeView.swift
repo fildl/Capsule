@@ -107,15 +107,51 @@ struct WardrobeView: View {
                 }
                 .padding(.horizontal)
                 
+                // Active Filters Chips
+                if filterCriteria.hasActiveFilters {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            if let category = filterCriteria.selectedCategory {
+                                FilterChip(title: category.rawValue) {
+                                    filterCriteria.selectedCategory = nil
+                                }
+                            }
+                            if let brand = filterCriteria.selectedBrand {
+                                FilterChip(title: brand) {
+                                    filterCriteria.selectedBrand = nil
+                                }
+                            }
+                            if let season = filterCriteria.selectedSeason {
+                                FilterChip(title: season.rawValue) {
+                                    filterCriteria.selectedSeason = nil
+                                }
+                            }
+                            ForEach(Array(filterCriteria.selectedColors).sorted(by: { $0.rawValue < $1.rawValue })) { color in
+                                FilterChip(title: color.rawValue, color: color.color) {
+                                    filterCriteria.selectedColors.remove(color)
+                                }
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    .padding(.bottom, 4)
+                }
+                
                 if selectedSegment == 0 {
                     ItemGridView(
                         sort: sortOption.itemSortDescriptors,
-                        predicate: filterCriteria.itemPredicate
+                        predicate: filterCriteria.itemPredicate,
+                        filterSeason: filterCriteria.selectedSeason,
+                        filterColors: filterCriteria.selectedColors
                     )
                 } else {
                     OutfitGridView(
                         sort: sortOption.outfitSortDescriptors,
-                        predicate: filterCriteria.outfitPredicate
+                        predicate: filterCriteria.outfitPredicate,
+                        filterSeason: filterCriteria.selectedSeason,
+                        filterCategory: filterCriteria.selectedCategory,
+                        filterBrand: filterCriteria.selectedBrand,
+                        filterColors: filterCriteria.selectedColors
                     )
                 }
                 
@@ -156,7 +192,8 @@ struct WardrobeView: View {
                 FilterSheet(
                     filterCriteria: $filterCriteria,
                     availableBrands: availableBrands,
-                    availableColors: availableColors
+                    availableColors: availableColors,
+                    title: selectedSegment == 0 ? "Filter Items" : "Filter Outfits"
                 )
             }
             .padding(.bottom, 8) 
@@ -202,17 +239,18 @@ struct FilterCriteria {
     var selectedCategory: MainCategory? = nil
     var selectedBrand: String? = nil
     var selectedSeason: Season? = nil
-    var selectedColor: ClothingColor? = nil
+    var selectedColors: Set<ClothingColor> = []
     
     var hasActiveFilters: Bool {
-        selectedCategory != nil || selectedBrand != nil || selectedSeason != nil || selectedColor != nil
+        selectedCategory != nil || selectedBrand != nil || selectedSeason != nil || !selectedColors.isEmpty
     }
     
     var itemPredicate: Predicate<ClothingItem> {
         let catRaw = selectedCategory?.rawValue
         let brandName = selectedBrand
-        let seasonRaw = selectedSeason?.rawValue
-        let colorRaw = selectedColor?.rawValue
+        
+        // We only filter database-friendly properties here.
+        // Complex properties (Seasons, Colors) are filtered in memory in the View.
         
         let filterCat = catRaw != nil
         let targetCat = catRaw ?? ""
@@ -220,30 +258,16 @@ struct FilterCriteria {
         let filterBrand = brandName != nil
         let targetBrand = brandName ?? ""
         
-        let filterSeason = seasonRaw != nil
-        let targetSeason = seasonRaw ?? ""
-        
-        let filterColor = colorRaw != nil
-        let targetColor = colorRaw ?? ""
-        
         return #Predicate<ClothingItem> { item in
             !item.isArchived &&
             (!filterCat || item.mainCategoryRaw == targetCat) &&
-            (!filterBrand || item.brand == targetBrand) &&
-            (!filterSeason || item.seasonsRaw.contains(targetSeason)) &&
-            (!filterColor || item.colors.contains(targetColor))
+            (!filterBrand || item.brand == targetBrand)
         }
     }
     
     var outfitPredicate: Predicate<Outfit> {
-        let seasonRaw = selectedSeason?.rawValue
-        let filterSeason = seasonRaw != nil
-        let targetSeason = seasonRaw ?? ""
-        
-        return #Predicate<Outfit> { outfit in
-            !outfit.isArchived &&
-            (!filterSeason || outfit.seasonsRaw.contains(targetSeason))
-        }
+        // Simplified predicate: Filter logic for Seasons is handled in-memory in OutfitGridView to avoid crashes.
+        return #Predicate<Outfit> { !$0.isArchived }
     }
 }
 
@@ -251,12 +275,13 @@ struct FilterSheet: View {
     @Binding var filterCriteria: FilterCriteria
     var availableBrands: [String]
     var availableColors: [ClothingColor]
+    var title: String = "Filter Items"
     @Environment(\.dismiss) private var dismiss
     
     var body: some View {
         NavigationStack {
             Form {
-                Section("Filter Items") {
+                Section(title) {
                      Picker("Category", selection: Binding(
                         get: { filterCriteria.selectedCategory },
                         set: { filterCriteria.selectedCategory = $0 }
@@ -300,17 +325,17 @@ struct FilterSheet: View {
                                             .frame(width: 32, height: 32)
                                             .overlay(Circle().stroke(Color.gray.opacity(0.2)))
                                         
-                                        if filterCriteria.selectedColor == color {
+                                        if filterCriteria.selectedColors.contains(color) {
                                             Image(systemName: "checkmark")
                                                 .font(.caption)
                                                 .foregroundStyle(.white) // or contrasting
                                         }
                                     }
                                     .onTapGesture {
-                                        if filterCriteria.selectedColor == color {
-                                            filterCriteria.selectedColor = nil
+                                        if filterCriteria.selectedColors.contains(color) {
+                                            filterCriteria.selectedColors.remove(color)
                                         } else {
-                                            filterCriteria.selectedColor = color
+                                            filterCriteria.selectedColors.insert(color)
                                         }
                                     }
                                 }
@@ -326,7 +351,7 @@ struct FilterSheet: View {
                             filterCriteria.selectedCategory = nil
                             filterCriteria.selectedBrand = nil
                             filterCriteria.selectedSeason = nil
-                            filterCriteria.selectedColor = nil
+                            filterCriteria.selectedColors.removeAll()
                         }
                         .foregroundStyle(.red)
                     }
@@ -342,6 +367,43 @@ struct FilterSheet: View {
             }
         }
         .presentationDetents([.medium, .large])
+    }
+}
+
+struct FilterChip: View {
+    let title: String
+    var color: Color? = nil
+    let onRemove: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 6) {
+            if let color {
+                Circle()
+                    .fill(color)
+                    .frame(width: 14, height: 14)
+                    .overlay(Circle().stroke(Color.black.opacity(0.1), lineWidth: 1))
+            }
+            
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.medium)
+            
+            Button(action: onRemove) {
+                Image(systemName: "xmark")
+                    .font(.caption2)
+                    .fontWeight(.bold)
+                    .padding(4)
+                    .background(Color.black.opacity(0.1))
+                    .clipShape(Circle())
+            }
+            .buttonStyle(.plain)
+        }
+        .padding(.leading, color != nil ? 8 : 12)
+        .padding(.trailing, 4)
+        .padding(.vertical, 6)
+        .background(Color.blue.opacity(0.1))
+        .foregroundStyle(.blue)
+        .clipShape(Capsule())
     }
 }
 

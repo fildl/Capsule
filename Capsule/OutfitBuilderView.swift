@@ -77,12 +77,12 @@ struct OutfitBuilderView: View {
                     // Category Filter Tabs
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 12) {
-                            FilterChip(title: "All", isSelected: selectedCategoryFilter == nil) {
+                            SelectionFilterChip(title: "All", isSelected: selectedCategoryFilter == nil) {
                                 selectedCategoryFilter = nil
                             }
                             
                             ForEach(MainCategory.allCases) { category in
-                                FilterChip(title: category.rawValue, isSelected: selectedCategoryFilter == category) {
+                                SelectionFilterChip(title: category.rawValue, isSelected: selectedCategoryFilter == category) {
                                     selectedCategoryFilter = category
                                 }
                             }
@@ -424,9 +424,8 @@ struct SaveOutfitSheet: View {
     }
 }
 
-
 // Helper Views
-struct FilterChip: View {
+struct SelectionFilterChip: View {
     let title: String
     let isSelected: Bool
     let action: () -> Void

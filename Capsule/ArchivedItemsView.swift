@@ -24,13 +24,19 @@ struct ArchivedItemsView: View {
                 // Show archived items
                 ItemGridView(
                     sort: [SortDescriptor(\.createdAt, order: .reverse)],
-                    predicate: #Predicate<ClothingItem> { $0.isArchived }
+                    predicate: #Predicate<ClothingItem> { $0.isArchived },
+                    filterSeason: nil,
+                    filterColors: []
                 )
             } else {
                 // Show archived outfits
                 OutfitGridView(
                     sort: [SortDescriptor(\.createdAt, order: .reverse)],
-                    predicate: #Predicate<Outfit> { $0.isArchived }
+                    predicate: #Predicate<Outfit> { $0.isArchived },
+                    filterSeason: nil,
+                    filterCategory: nil,
+                    filterBrand: nil,
+                    filterColors: []
                 )
             }
         }

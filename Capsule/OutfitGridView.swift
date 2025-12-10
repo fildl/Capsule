@@ -27,13 +27,68 @@ struct OutfitGridView: View {
         GridItem(.adaptive(minimum: 110), spacing: 8)
     ]
     
-    init(sort: [SortDescriptor<Outfit>], predicate: Predicate<Outfit>?) {
+    // Filters
+    let filterSeason: Season?
+    let filterCategory: MainCategory?
+    let filterBrand: String?
+    let filterColors: Set<ClothingColor>
+    
+    init(
+        sort: [SortDescriptor<Outfit>],
+        predicate: Predicate<Outfit>?,
+        filterSeason: Season?,
+        filterCategory: MainCategory?,
+        filterBrand: String?,
+        filterColors: Set<ClothingColor>
+    ) {
         _outfits = Query(filter: predicate, sort: sort)
+        self.filterSeason = filterSeason
+        self.filterCategory = filterCategory
+        self.filterBrand = filterBrand
+        self.filterColors = filterColors
+    }
+    
+    var filteredOutfits: [Outfit] {
+        if filterSeason == nil && filterCategory == nil && filterBrand == nil && filterColors.isEmpty {
+            return outfits
+        }
+        
+        return outfits.filter { outfit in
+            // Season Check
+            if let season = filterSeason, !outfit.seasonsRaw.contains(season.rawValue) {
+                return false
+            }
+            
+            // Category Check (Contains at least one item of category)
+            if let category = filterCategory {
+                if !(outfit.items?.contains(where: { $0.mainCategoryRaw == category.rawValue }) ?? false) {
+                    return false
+                }
+            }
+            
+            // Brand Check (Contains at least one item of brand)
+            if let brand = filterBrand {
+                if !(outfit.items?.contains(where: { $0.brand == brand }) ?? false) {
+                    return false
+                }
+            }
+            
+            // Color Check (Palette contains ALL selected)
+            if !filterColors.isEmpty {
+                let outfitColors = Set((outfit.items ?? []).flatMap { $0.colors })
+                let requiredColors = Set(filterColors.map { $0.rawValue })
+                if !requiredColors.isSubset(of: outfitColors) {
+                    return false
+                }
+            }
+            
+            return true
+        }
     }
     
     var body: some View {
         Group {
-            if outfits.isEmpty {
+            if filteredOutfits.isEmpty {
                 ContentUnavailableView(
                     "No Outfits Found",
                     systemImage: "magnifyingglass",
@@ -42,7 +97,7 @@ struct OutfitGridView: View {
             } else {
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 8) {
-                        ForEach(outfits) { outfit in
+                        ForEach(filteredOutfits) { outfit in
                             NavigationLink(destination: OutfitDetailView(outfit: outfit)) {
                                 OutfitCard(outfit: outfit)
                             }
