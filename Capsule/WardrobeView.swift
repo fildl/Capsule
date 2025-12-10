@@ -23,8 +23,7 @@ struct WardrobeView: View {
     
     var availableBrands: [String] {
         let userBrands = allItems.compactMap { $0.brand }.filter { !$0.isEmpty }
-        let all = Set(popularBrands + userBrands)
-        return Array(all).sorted()
+        return Array(Set(userBrands)).sorted()
     }
     
     var availableColors: [ClothingColor] {
@@ -52,9 +51,16 @@ struct WardrobeView: View {
                 HStack(spacing: 12) {
                     // Sort Menu
                     Menu {
-                        Picker("Sort By", selection: $sortOption) {
-                            ForEach(SortOption.allCases) { option in
-                                Text(option.rawValue).tag(option)
+                        ForEach(SortOption.allCases) { option in
+                            Button {
+                                sortOption = option
+                            } label: {
+                                HStack {
+                                    Text(option.rawValue)
+                                    if sortOption == option {
+                                        Image(systemName: "checkmark")
+                                    }
+                                }
                             }
                         }
                     } label: {
