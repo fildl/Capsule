@@ -11,6 +11,7 @@ struct WardrobeView: View {
     @State private var selectedSegment = 0
     @State private var isShowingAddItem = false
     @State private var isShowingOutfitBuilder = false
+    @State private var isShowingSettings = false
     
     var body: some View {
         NavigationStack {
@@ -32,6 +33,14 @@ struct WardrobeView: View {
             }
             .navigationTitle("Wardrobe")
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: {
+                        isShowingSettings = true
+                    }) {
+                        Image(systemName: "gearshape")
+                    }
+                }
+                
                 ToolbarItem(placement: .primaryAction) {
                     Button(action: {
                         if selectedSegment == 0 {
@@ -49,6 +58,9 @@ struct WardrobeView: View {
             }
             .sheet(isPresented: $isShowingOutfitBuilder) {
                 OutfitBuilderView()
+            }
+            .sheet(isPresented: $isShowingSettings) {
+                SettingsView()
             }
                 .padding(.bottom, 8) 
 

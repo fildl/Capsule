@@ -12,6 +12,7 @@ struct ItemDetailView: View {
     @Bindable var item: ClothingItem
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("temperatureUnit") private var temperatureUnit = "C"
     
     @State private var isShowingEditSheet = false
     
@@ -181,7 +182,7 @@ struct ItemDetailView: View {
                                 }
                                 // Temp
                                 if let temp = CareTemperature(rawValue: item.careTemperatureRaw ?? "") {
-                                    CareIconView(icon: "thermometer", label: temp.rawValue)
+                                    CareIconView(icon: "thermometer", label: temp.displayValue(for: temperatureUnit))
                                 }
                                 // Bleach
                                 if let bleach = CareBleaching(rawValue: item.careBleachingRaw ?? "") {

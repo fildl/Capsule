@@ -12,6 +12,7 @@ import PhotosUI
 struct AddItemView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @AppStorage("temperatureUnit") private var temperatureUnit = "C"
     
     var itemToEdit: ClothingItem?
     
@@ -349,7 +350,7 @@ struct AddItemView: View {
                         if washingMethod != .dontWash {
                             Picker("Temperature", selection: $washingTemperature) {
                                 ForEach(CareTemperature.allCases) { temp in
-                                    Text(temp.rawValue).tag(temp)
+                                    Text(temp.displayValue(for: temperatureUnit)).tag(temp)
                                 }
                             }
                         }

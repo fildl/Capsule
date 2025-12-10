@@ -95,6 +95,19 @@ enum CareTemperature: String, Codable, CaseIterable, Identifiable {
     case hot90 = "90°C"
     
     var id: String { rawValue }
+    
+    func displayValue(for unit: String) -> String {
+        if unit == "F" {
+            switch self {
+            case .cold: return "Cold"
+            case .warm30: return "Cool"
+            case .warm40: return "Warm"
+            case .hot60: return "Hot"
+            case .hot90: return "Extra Hot"
+            }
+        }
+        return self.rawValue
+    }
 }
 
 enum CareBleaching: String, Codable, CaseIterable, Identifiable {
