@@ -9,7 +9,19 @@ import SwiftUI
 import SwiftData
 
 struct ItemGridView: View {
+    @Environment(\.modelContext) private var modelContext
     @Query private var items: [ClothingItem]
+    
+    // Action State
+    @State private var itemToDelete: ClothingItem?
+    @State private var itemToAssign: ClothingItem?
+    
+    // Sheet State
+    @State private var isShowingDeleteConfirmation = false
+    @State private var isShowingCalendarSheet = false
+    
+    // Calendar State
+    @State private var selectedDate = Date()
     
     private let columns = [
         GridItem(.adaptive(minimum: 110), spacing: 8)
@@ -20,31 +32,100 @@ struct ItemGridView: View {
     }
     
     var body: some View {
-        if items.isEmpty {
-            ContentUnavailableView(
-                "No Items Found",
-                systemImage: "magnifyingglass",
-                description: Text("Try adjusting your filters")
-            )
-        } else {
-            ScrollView {
-                LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(items) { item in
-                        NavigationLink(destination: ItemDetailView(item: item)) {
-                            ItemCard(item: item)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                // Delete logic setup
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+        Group {
+            if items.isEmpty {
+                ContentUnavailableView(
+                    "No Items Found",
+                    systemImage: "magnifyingglass",
+                    description: Text("Try adjusting your filters")
+                )
+            } else {
+                ScrollView {
+                    LazyVGrid(columns: columns, spacing: 8) {
+                        ForEach(items) { item in
+                            NavigationLink(destination: ItemDetailView(item: item)) {
+                                ItemCard(item: item)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .contextMenu {
+                                Button {
+                                    withAnimation {
+                                        item.isArchived.toggle()
+                                    }
+                                } label: {
+                                    Label(
+                                        item.isArchived ? "Unarchive" : "Archive",
+                                        systemImage: item.isArchived ? "arrow.up.bin" : "archivebox"
+                                    )
+                                }
+                                
+                                Button {
+                                    itemToAssign = item
+                                    isShowingCalendarSheet = true
+                                } label: {
+                                    Label("Assign to Calendar", systemImage: "calendar")
+                                }
+                                
+                                Button(role: .destructive) {
+                                    itemToDelete = item
+                                    isShowingDeleteConfirmation = true
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
                             }
                         }
                     }
+                    .padding(8)
                 }
-                .padding(8)
             }
+        }
+        // Delete Confirmation
+        .confirmationDialog(
+            "Delete Item?",
+            isPresented: $isShowingDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                if let item = itemToDelete {
+                    modelContext.delete(item)
+                }
+                itemToDelete = nil
+            }
+            Button("Cancel", role: .cancel) {
+                itemToDelete = nil
+            }
+        } message: {
+            Text("This action cannot be undone.")
+        }
+        // Calendar Sheet
+        .sheet(isPresented: $isShowingCalendarSheet) {
+            NavigationStack {
+                Form {
+                    DatePicker("Date", selection: $selectedDate, displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                }
+                .navigationTitle("Assign to Calendar")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            isShowingCalendarSheet = false
+                            itemToAssign = nil
+                        }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            if let item = itemToAssign {
+                                let log = DailyLog(date: selectedDate, items: [item])
+                                modelContext.insert(log)
+                            }
+                            isShowingCalendarSheet = false
+                            itemToAssign = nil
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.medium])
         }
     }
 }

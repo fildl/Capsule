@@ -437,6 +437,7 @@ final class Outfit {
     
     @Relationship var items: [ClothingItem]?
     @Relationship(inverse: \DailyLog.outfit) var logs: [DailyLog]?
+    var isArchived: Bool = false
     
     var seasons: Set<Season> {
         get { Set(seasonsRaw.compactMap { Season(rawValue: $0) }) }
@@ -457,12 +458,11 @@ final class Outfit {
 final class DailyLog {
     var date: Date
     @Relationship var outfit: Outfit?
+    @Relationship var items: [ClothingItem]?
     
-    // We might want to allow logging individual items without an outfit wrapper in future,
-    // but for now we follow the plan: Log -> Outfit -> Items
-    
-    init(date: Date, outfit: Outfit?) {
+    init(date: Date, outfit: Outfit? = nil, items: [ClothingItem]? = nil) {
         self.date = date
         self.outfit = outfit
+        self.items = items
     }
 }

@@ -46,12 +46,17 @@ struct WardrobeView: View {
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal)
+                .onChange(of: selectedSegment) { _, newValue in
+                    if newValue == 1 && !SortOption.outfitOptions.contains(sortOption) {
+                        sortOption = .dateCreatedDesc
+                    }
+                }
                 
                 // Sort & Filter Controls
                 HStack(spacing: 12) {
                     // Sort Menu
                     Menu {
-                        ForEach(SortOption.allCases) { option in
+                        ForEach(selectedSegment == 1 ? SortOption.outfitOptions : SortOption.allCases) { option in
                             Button {
                                 sortOption = option
                             } label: {
@@ -171,6 +176,8 @@ enum SortOption: String, CaseIterable, Identifiable {
     
     var id: String { rawValue }
     
+    static let outfitOptions: [SortOption] = [.dateCreatedDesc, .dateCreatedAsc]
+    
     var itemSortDescriptors: [SortDescriptor<ClothingItem>] {
         switch self {
         case .dateCreatedDesc: return [SortDescriptor(\.createdAt, order: .reverse)]
@@ -201,38 +208,41 @@ struct FilterCriteria {
         selectedCategory != nil || selectedBrand != nil || selectedSeason != nil || selectedColor != nil
     }
     
-    var itemPredicate: Predicate<ClothingItem>? {
+    var itemPredicate: Predicate<ClothingItem> {
         let catRaw = selectedCategory?.rawValue
         let brandName = selectedBrand
         let seasonRaw = selectedSeason?.rawValue
         let colorRaw = selectedColor?.rawValue
         
-        if catRaw == nil && brandName == nil && seasonRaw == nil && colorRaw == nil {
-            return nil
-        }
+        let filterCat = catRaw != nil
+        let targetCat = catRaw ?? ""
         
-        let searchCategory = catRaw ?? ""
-        let searchBrand = brandName
-        let searchSeason = seasonRaw ?? ""
-        let searchColor = colorRaw ?? ""
+        let filterBrand = brandName != nil
+        let targetBrand = brandName ?? ""
+        
+        let filterSeason = seasonRaw != nil
+        let targetSeason = seasonRaw ?? ""
+        
+        let filterColor = colorRaw != nil
+        let targetColor = colorRaw ?? ""
         
         return #Predicate<ClothingItem> { item in
-            ((catRaw == nil || item.mainCategoryRaw == searchCategory) &&
-             (brandName == nil || item.brand == searchBrand)) &&
-            ((seasonRaw == nil || item.seasonsRaw.contains(searchSeason)) &&
-             (colorRaw == nil || item.colors.contains(searchColor)))
+            !item.isArchived &&
+            (!filterCat || item.mainCategoryRaw == targetCat) &&
+            (!filterBrand || item.brand == targetBrand) &&
+            (!filterSeason || item.seasonsRaw.contains(targetSeason)) &&
+            (!filterColor || item.colors.contains(targetColor))
         }
     }
     
-    var outfitPredicate: Predicate<Outfit>? {
+    var outfitPredicate: Predicate<Outfit> {
         let seasonRaw = selectedSeason?.rawValue
-        
-        if seasonRaw == nil {
-            return nil 
-        }
+        let filterSeason = seasonRaw != nil
+        let targetSeason = seasonRaw ?? ""
         
         return #Predicate<Outfit> { outfit in
-            (seasonRaw == nil || outfit.seasonsRaw.contains(seasonRaw!))
+            !outfit.isArchived &&
+            (!filterSeason || outfit.seasonsRaw.contains(targetSeason))
         }
     }
 }

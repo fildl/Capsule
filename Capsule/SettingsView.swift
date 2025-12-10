@@ -18,6 +18,10 @@ struct SettingsView: View {
                         Label("General", systemImage: "gear")
                     }
                     
+                    NavigationLink(destination: ArchivedItemsView()) {
+                        Label("Archive", systemImage: "archivebox")
+                    }
+                    
                     NavigationLink(destination: DataSettingsView()) {
                         Label("Data Management", systemImage: "externaldrive")
                     }

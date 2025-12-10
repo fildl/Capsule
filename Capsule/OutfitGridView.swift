@@ -9,7 +9,19 @@ import SwiftUI
 import SwiftData
 
 struct OutfitGridView: View {
+    @Environment(\.modelContext) private var modelContext
     @Query private var outfits: [Outfit]
+    
+    // Action State
+    @State private var outfitToDelete: Outfit?
+    @State private var outfitToAssign: Outfit?
+    
+    // Sheet State
+    @State private var isShowingDeleteConfirmation = false
+    @State private var isShowingCalendarSheet = false
+    
+    // Calendar State
+    @State private var selectedDate = Date()
     
     private let columns = [
         GridItem(.adaptive(minimum: 110), spacing: 8)
@@ -20,31 +32,100 @@ struct OutfitGridView: View {
     }
     
     var body: some View {
-        if outfits.isEmpty {
-            ContentUnavailableView(
-                "No Outfits Found",
-                systemImage: "magnifyingglass",
-                description: Text("Try adjusting your filters or add a new outfit")
-            )
-        } else {
-            ScrollView {
-                LazyVGrid(columns: columns, spacing: 8) {
-                    ForEach(outfits) { outfit in
-                        NavigationLink(destination: OutfitDetailView(outfit: outfit)) {
-                            OutfitCard(outfit: outfit)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .contextMenu {
-                            Button(role: .destructive) {
-                                // Delete Logic Setup
-                            } label: {
-                                Label("Delete", systemImage: "trash")
+        Group {
+            if outfits.isEmpty {
+                ContentUnavailableView(
+                    "No Outfits Found",
+                    systemImage: "magnifyingglass",
+                    description: Text("Try adjusting your filters or add a new outfit")
+                )
+            } else {
+                ScrollView {
+                    LazyVGrid(columns: columns, spacing: 8) {
+                        ForEach(outfits) { outfit in
+                            NavigationLink(destination: OutfitDetailView(outfit: outfit)) {
+                                OutfitCard(outfit: outfit)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .contextMenu {
+                                Button {
+                                    withAnimation {
+                                        outfit.isArchived.toggle()
+                                    }
+                                } label: {
+                                    Label(
+                                        outfit.isArchived ? "Unarchive" : "Archive",
+                                        systemImage: outfit.isArchived ? "arrow.up.bin" : "archivebox"
+                                    )
+                                }
+                                
+                                Button {
+                                    outfitToAssign = outfit
+                                    isShowingCalendarSheet = true
+                                } label: {
+                                    Label("Assign to Calendar", systemImage: "calendar")
+                                }
+                                
+                                Button(role: .destructive) {
+                                    outfitToDelete = outfit
+                                    isShowingDeleteConfirmation = true
+                                } label: {
+                                    Label("Delete", systemImage: "trash")
+                                }
                             }
                         }
                     }
+                    .padding(8)
                 }
-                .padding(8)
             }
+        }
+        // Delete Confirmation
+        .confirmationDialog(
+            "Delete Outfit?",
+            isPresented: $isShowingDeleteConfirmation,
+            titleVisibility: .visible
+        ) {
+            Button("Delete", role: .destructive) {
+                if let outfit = outfitToDelete {
+                    modelContext.delete(outfit)
+                }
+                outfitToDelete = nil
+            }
+            Button("Cancel", role: .cancel) {
+                outfitToDelete = nil
+            }
+        } message: {
+            Text("This action cannot be undone.")
+        }
+        // Calendar Sheet
+        .sheet(isPresented: $isShowingCalendarSheet) {
+            NavigationStack {
+                Form {
+                    DatePicker("Date", selection: $selectedDate, displayedComponents: .date)
+                        .datePickerStyle(.graphical)
+                }
+                .navigationTitle("Assign to Calendar")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Cancel") {
+                            isShowingCalendarSheet = false
+                            outfitToAssign = nil
+                        }
+                    }
+                    ToolbarItem(placement: .confirmationAction) {
+                        Button("Save") {
+                            if let outfit = outfitToAssign {
+                                let log = DailyLog(date: selectedDate, outfit: outfit)
+                                modelContext.insert(log)
+                            }
+                            isShowingCalendarSheet = false
+                            outfitToAssign = nil
+                        }
+                    }
+                }
+            }
+            .presentationDetents([.medium])
         }
     }
 }

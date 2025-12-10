@@ -60,9 +60,13 @@ struct ItemDetailView: View {
                     
                     Divider()
                     
-                    // Basic Info Row (Left Aligned)
-                    HStack(alignment: .top, spacing: 60) {
+                    // Basic Info Row
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible()), GridItem(.flexible())], alignment: .leading, spacing: 24) {
                         InfoRow(title: "Category", value: item.mainCategory.rawValue)
+                        
+                        if !item.subCategory.isEmpty {
+                            InfoRow(title: "Subcategory", value: item.subCategory)
+                        }
                         
                         if let size = item.size, !size.isEmpty {
                             InfoRow(title: "Size", value: size)
@@ -132,36 +136,42 @@ struct ItemDetailView: View {
                     }
                     
                     // Purchase Info
-                    VStack(alignment: .leading, spacing: 8) {
-                         Text("PURCHASE INFO")
-                            .font(.caption)
-                            .fontWeight(.bold)
-                            .foregroundStyle(.secondary)
+                    if (item.purchaseLocation != nil && !item.purchaseLocation!.isEmpty) ||
+                        item.purchaseUrl != nil ||
+                        item.purchaseDate != nil ||
+                        (item.price != nil && item.price! > 0) {
                         
-                        if let location = item.purchaseLocation, !location.isEmpty {
-                            InfoRow(title: "Store / Website", value: location)
-                        }
-                        
-                        if let url = item.purchaseUrl {
-                            Button {
-                                UIApplication.shared.open(url)
-                            } label: {
-                                HStack(alignment: .center, spacing: 4) {
-                                    Image(systemName: "link")
-                                    Text("Open Link")
-                                }
-                                .font(.subheadline)
-                                .foregroundColor(.blue)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("PURCHASE INFO")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.secondary)
+                            
+                            if let location = item.purchaseLocation, !location.isEmpty {
+                                InfoRow(title: "Store / Website", value: location)
                             }
-                            .padding(.vertical, 2)
-                        }
-                        
-                        if let date = item.purchaseDate {
-                            InfoRow(title: "Date", value: date.formatted(date: .long, time: .omitted))
-                        }
-                        
-                        if let price = item.price, price > 0 {
-                             InfoRow(title: "Price", value: price.formatted(.currency(code: Locale.current.currency?.identifier ?? "EUR")))
+                            
+                            if let url = item.purchaseUrl {
+                                Button {
+                                    UIApplication.shared.open(url)
+                                } label: {
+                                    HStack(alignment: .center, spacing: 4) {
+                                        Image(systemName: "link")
+                                        Text("Open Link")
+                                    }
+                                    .font(.subheadline)
+                                    .foregroundColor(.blue)
+                                }
+                                .padding(.vertical, 2)
+                            }
+                            
+                            if let date = item.purchaseDate {
+                                InfoRow(title: "Date", value: date.formatted(date: .long, time: .omitted))
+                            }
+                            
+                            if let price = item.price, price > 0 {
+                                InfoRow(title: "Price", value: price.formatted(.currency(code: Locale.current.currency?.identifier ?? "EUR")))
+                            }
                         }
                     }
                     
