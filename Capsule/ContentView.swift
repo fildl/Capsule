@@ -27,7 +27,6 @@ struct ContentView: View {
                 }
         }
         .tabBarMinimizeBehavior(.onScrollDown)
-        .tint(.blue)
     }
 }
 
