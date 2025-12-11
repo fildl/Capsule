@@ -80,6 +80,7 @@ struct OutfitDetailView: View {
                                                 .frame(width: 80)
                                         }
                                     }
+                                    .buttonStyle(.plain)
                                 }
                             }
                             .padding(.horizontal)
