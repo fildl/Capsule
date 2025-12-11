@@ -8,6 +8,8 @@
 import SwiftUI
 
 struct StatsView: View {
+    @State private var isShowingSettings = false
+    
     var body: some View {
         NavigationStack {
             ContentUnavailableView(
@@ -16,7 +18,21 @@ struct StatsView: View {
                 description: Text("Track your wardrobe usage here.")
             )
             .navigationTitle("Statistics")
+            .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Button(action: {
+                        isShowingSettings = true
+                    }) {
+                        Image(systemName: "gearshape")
+                            .foregroundStyle(.primary)
+                    }
+                }
+            }
+            .sheet(isPresented: $isShowingSettings) {
+                SettingsView()
+            }
         }
+        .tint(.primary)
     }
 }
 

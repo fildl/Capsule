@@ -155,7 +155,7 @@ struct WardrobeView: View {
                     )
                 }
                 
-                Spacer()
+                // Spacer removed to allow content to flow behind TabBar
             }
             .navigationTitle("Wardrobe")
             .toolbar {
@@ -164,6 +164,7 @@ struct WardrobeView: View {
                         isShowingSettings = true
                     }) {
                         Image(systemName: "gearshape")
+                            .foregroundStyle(.primary)
                     }
                 }
                 
@@ -176,6 +177,7 @@ struct WardrobeView: View {
                         }
                     }) {
                         Image(systemName: "plus")
+                            .foregroundStyle(.primary)
                     }
                 }
             }
@@ -196,7 +198,7 @@ struct WardrobeView: View {
                     title: selectedSegment == 0 ? "Filter Items" : "Filter Outfits"
                 )
             }
-            .padding(.bottom, 8) 
+            .ignoresSafeArea(edges: .bottom) 
         }
     }
 }

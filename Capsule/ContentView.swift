@@ -26,6 +26,8 @@ struct ContentView: View {
                     Label("Stats", systemImage: "chart.bar")
                 }
         }
+        .tabBarMinimizeBehavior(.onScrollDown)
+        .tint(.blue)
     }
 }
 
