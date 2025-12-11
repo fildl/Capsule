@@ -95,8 +95,7 @@ struct OutfitGridView: View {
                     description: Text("Try adjusting your filters or add a new outfit")
                 )
             } else {
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: 8) {
+                LazyVGrid(columns: columns, spacing: 8) {
                         ForEach(filteredOutfits) { outfit in
                             NavigationLink(destination: OutfitDetailView(outfit: outfit)) {
                                 OutfitCard(outfit: outfit)
@@ -131,7 +130,6 @@ struct OutfitGridView: View {
                         }
                     }
                     .padding(8)
-                }
             }
         }
         // Delete Confirmation

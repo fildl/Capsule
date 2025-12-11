@@ -12,11 +12,14 @@ struct CalendarView: View {
     
     var body: some View {
         NavigationStack {
-            ContentUnavailableView(
-                "Calendar Coming Soon",
-                systemImage: "calendar",
-                description: Text("Plan your outfits here.")
-            )
+            ScrollView {
+                ContentUnavailableView(
+                    "Calendar Coming Soon",
+                    systemImage: "calendar",
+                    description: Text("Plan your outfits here.")
+                )
+                .padding(.top, 100) // Visual balance since it's now scrolling
+            }
             .navigationTitle("Calendar")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

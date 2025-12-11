@@ -39,124 +39,125 @@ struct WardrobeView: View {
     
     var body: some View {
         NavigationStack {
-            VStack(spacing: 12) {
-                Picker("View Mode", selection: $selectedSegment) {
-                    Text("Items").tag(0)
-                    Text("Outfits").tag(1)
-                }
-                .pickerStyle(.segmented)
-                .padding(.horizontal)
-                .onChange(of: selectedSegment) { _, newValue in
-                    if newValue == 1 && !SortOption.outfitOptions.contains(sortOption) {
-                        sortOption = .dateCreatedDesc
+            ScrollView {
+                VStack(spacing: 12) {
+                    Picker("View Mode", selection: $selectedSegment) {
+                        Text("Items").tag(0)
+                        Text("Outfits").tag(1)
                     }
-                }
-                
-                // Sort & Filter Controls
-                HStack(spacing: 12) {
-                    // Sort Menu
-                    Menu {
-                        ForEach(selectedSegment == 1 ? SortOption.outfitOptions : SortOption.allCases) { option in
-                            Button {
-                                sortOption = option
-                            } label: {
-                                HStack {
-                                    Text(option.rawValue)
-                                    if sortOption == option {
-                                        Image(systemName: "checkmark")
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal)
+                    .onChange(of: selectedSegment) { _, newValue in
+                        if newValue == 1 && !SortOption.outfitOptions.contains(sortOption) {
+                            sortOption = .dateCreatedDesc
+                        }
+                    }
+                    
+                    // Sort & Filter Controls
+                    HStack(spacing: 12) {
+                        // Sort Menu
+                        Menu {
+                            ForEach(selectedSegment == 1 ? SortOption.outfitOptions : SortOption.allCases) { option in
+                                Button {
+                                    sortOption = option
+                                } label: {
+                                    HStack {
+                                        Text(option.rawValue)
+                                        if sortOption == option {
+                                            Image(systemName: "checkmark")
+                                        }
                                     }
                                 }
                             }
+                        } label: {
+                            HStack {
+                                Image(systemName: "arrow.up.arrow.down")
+                                Text("Sort")
+                                Spacer()
+                                Text(sortOption.rawValue)
+                                    .font(.caption)
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(Color(.secondarySystemBackground))
+                            .cornerRadius(12)
                         }
-                    } label: {
-                        HStack {
-                            Image(systemName: "arrow.up.arrow.down")
-                            Text("Sort")
-                            Spacer()
-                            Text(sortOption.rawValue)
-                                .font(.caption)
-                                .foregroundStyle(.secondary)
+                        .buttonStyle(.plain)
+                        
+                        // Filter Button
+                        Button {
+                            isShowingSortFilter = true
+                        } label: {
+                            HStack {
+                                Image(systemName: "line.3.horizontal.decrease.circle")
+                                    .symbolVariant(filterCriteria.hasActiveFilters ? .fill : .none)
+                                Text("Filter")
+                            }
+                            .padding(.vertical, 8)
+                            .padding(.horizontal, 12)
+                            .background(filterCriteria.hasActiveFilters ? Color.blue.opacity(0.1) : Color(.secondarySystemBackground))
+                            .cornerRadius(12)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(filterCriteria.hasActiveFilters ? Color.blue : Color.clear, lineWidth: 1)
+                            )
                         }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 12)
-                        .background(Color(.secondarySystemBackground))
-                        .cornerRadius(12)
+                        .buttonStyle(.plain)
+                        .foregroundStyle(filterCriteria.hasActiveFilters ? .blue : .primary)
                     }
-                    .buttonStyle(.plain)
+                    .padding(.horizontal)
                     
-                    // Filter Button
-                    Button {
-                        isShowingSortFilter = true
-                    } label: {
-                        HStack {
-                            Image(systemName: "line.3.horizontal.decrease.circle")
-                                .symbolVariant(filterCriteria.hasActiveFilters ? .fill : .none)
-                            Text("Filter")
+                    // Active Filters Chips
+                    if filterCriteria.hasActiveFilters {
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 8) {
+                                if let category = filterCriteria.selectedCategory {
+                                    FilterChip(title: category.rawValue) {
+                                        filterCriteria.selectedCategory = nil
+                                    }
+                                }
+                                if let brand = filterCriteria.selectedBrand {
+                                    FilterChip(title: brand) {
+                                        filterCriteria.selectedBrand = nil
+                                    }
+                                }
+                                if let season = filterCriteria.selectedSeason {
+                                    FilterChip(title: season.rawValue) {
+                                        filterCriteria.selectedSeason = nil
+                                    }
+                                }
+                                ForEach(Array(filterCriteria.selectedColors).sorted(by: { $0.rawValue < $1.rawValue })) { color in
+                                    FilterChip(title: color.rawValue, color: color.color) {
+                                        filterCriteria.selectedColors.remove(color)
+                                    }
+                                }
+                            }
+                            .padding(.horizontal)
                         }
-                        .padding(.vertical, 8)
-                        .padding(.horizontal, 12)
-                        .background(filterCriteria.hasActiveFilters ? Color.blue.opacity(0.1) : Color(.secondarySystemBackground))
-                        .cornerRadius(12)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 12)
-                                .stroke(filterCriteria.hasActiveFilters ? Color.blue : Color.clear, lineWidth: 1)
+                        .padding(.bottom, 4)
+                    }
+                    
+                    if selectedSegment == 0 {
+                        ItemGridView(
+                            sort: sortOption.itemSortDescriptors,
+                            predicate: filterCriteria.itemPredicate,
+                            filterSeason: filterCriteria.selectedSeason,
+                            filterColors: filterCriteria.selectedColors
+                        )
+                    } else {
+                        OutfitGridView(
+                            sort: sortOption.outfitSortDescriptors,
+                            predicate: filterCriteria.outfitPredicate,
+                            filterSeason: filterCriteria.selectedSeason,
+                            filterCategory: filterCriteria.selectedCategory,
+                            filterBrand: filterCriteria.selectedBrand,
+                            filterColors: filterCriteria.selectedColors
                         )
                     }
-                    .buttonStyle(.plain)
-                    .foregroundStyle(filterCriteria.hasActiveFilters ? .blue : .primary)
                 }
-                .padding(.horizontal)
-                
-                // Active Filters Chips
-                if filterCriteria.hasActiveFilters {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack(spacing: 8) {
-                            if let category = filterCriteria.selectedCategory {
-                                FilterChip(title: category.rawValue) {
-                                    filterCriteria.selectedCategory = nil
-                                }
-                            }
-                            if let brand = filterCriteria.selectedBrand {
-                                FilterChip(title: brand) {
-                                    filterCriteria.selectedBrand = nil
-                                }
-                            }
-                            if let season = filterCriteria.selectedSeason {
-                                FilterChip(title: season.rawValue) {
-                                    filterCriteria.selectedSeason = nil
-                                }
-                            }
-                            ForEach(Array(filterCriteria.selectedColors).sorted(by: { $0.rawValue < $1.rawValue })) { color in
-                                FilterChip(title: color.rawValue, color: color.color) {
-                                    filterCriteria.selectedColors.remove(color)
-                                }
-                            }
-                        }
-                        .padding(.horizontal)
-                    }
-                    .padding(.bottom, 4)
-                }
-                
-                if selectedSegment == 0 {
-                    ItemGridView(
-                        sort: sortOption.itemSortDescriptors,
-                        predicate: filterCriteria.itemPredicate,
-                        filterSeason: filterCriteria.selectedSeason,
-                        filterColors: filterCriteria.selectedColors
-                    )
-                } else {
-                    OutfitGridView(
-                        sort: sortOption.outfitSortDescriptors,
-                        predicate: filterCriteria.outfitPredicate,
-                        filterSeason: filterCriteria.selectedSeason,
-                        filterCategory: filterCriteria.selectedCategory,
-                        filterBrand: filterCriteria.selectedBrand,
-                        filterColors: filterCriteria.selectedColors
-                    )
-                }
-                
-                // Spacer removed to allow content to flow behind TabBar
             }
+            .ignoresSafeArea(edges: .bottom)
             .navigationTitle("Wardrobe")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -204,7 +205,6 @@ struct WardrobeView: View {
 }
 
 // MARK: - Sort & Filter Models
-
 enum SortOption: String, CaseIterable, Identifiable {
     case dateCreatedDesc = "Newest First"
     case dateCreatedAsc = "Oldest First"

@@ -12,11 +12,14 @@ struct StatsView: View {
     
     var body: some View {
         NavigationStack {
-            ContentUnavailableView(
-                "Stats Coming Soon",
-                systemImage: "chart.bar",
-                description: Text("Track your wardrobe usage here.")
-            )
+            ScrollView {
+                ContentUnavailableView(
+                    "Stats Coming Soon",
+                    systemImage: "chart.bar",
+                    description: Text("Track your wardrobe usage here.")
+                )
+                .padding(.top, 100)
+            }
             .navigationTitle("Statistics")
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {

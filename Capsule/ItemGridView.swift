@@ -68,8 +68,7 @@ struct ItemGridView: View {
                     description: Text("Try adjusting your filters")
                 )
             } else {
-                ScrollView {
-                    LazyVGrid(columns: columns, spacing: 8) {
+                LazyVGrid(columns: columns, spacing: 8) {
                         ForEach(filteredItems) { item in
                             NavigationLink(destination: ItemDetailView(item: item)) {
                                 ItemCard(item: item)
@@ -104,7 +103,6 @@ struct ItemGridView: View {
                         }
                     }
                     .padding(8)
-                }
             }
         }
         // Delete Confirmation
