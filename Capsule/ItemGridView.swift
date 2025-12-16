@@ -30,15 +30,17 @@ struct ItemGridView: View {
     // Filters
     let filterSeason: Season?
     let filterColors: Set<ClothingColor>
+    let filterTags: Set<Tag>
     
-    init(sort: [SortDescriptor<ClothingItem>], predicate: Predicate<ClothingItem>?, filterSeason: Season?, filterColors: Set<ClothingColor>) {
+    init(sort: [SortDescriptor<ClothingItem>], predicate: Predicate<ClothingItem>?, filterSeason: Season?, filterColors: Set<ClothingColor>, filterTags: Set<Tag> = []) {
         _items = Query(filter: predicate, sort: sort)
         self.filterSeason = filterSeason
         self.filterColors = filterColors
+        self.filterTags = filterTags
     }
     
     var filteredItems: [ClothingItem] {
-        if filterSeason == nil && filterColors.isEmpty {
+        if filterSeason == nil && filterColors.isEmpty && filterTags.isEmpty {
             return items
         }
         
@@ -52,6 +54,13 @@ struct ItemGridView: View {
                 let itemColorSet = Set(item.colors)
                 let requiredColorSet = Set(filterColors.map { $0.rawValue })
                 if !requiredColorSet.isSubset(of: itemColorSet) {
+                    return false
+                }
+            }
+            // Tag Check (Must contain ALL selected)
+            if !filterTags.isEmpty {
+                let itemTagSet = Set(item.tags ?? [])
+                if !filterTags.isSubset(of: itemTagSet) {
                     return false
                 }
             }
@@ -184,6 +193,6 @@ struct ItemCard: View {
 }
 
 #Preview {
-    ItemGridView(sort: [], predicate: nil, filterSeason: nil, filterColors: [])
+    ItemGridView(sort: [], predicate: nil, filterSeason: nil, filterColors: [], filterTags: [])
         .modelContainer(for: ClothingItem.self, inMemory: true)
 }

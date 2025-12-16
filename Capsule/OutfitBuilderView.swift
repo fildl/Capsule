@@ -25,6 +25,7 @@ struct OutfitBuilderView: View {
     @State private var isShowingSaveSheet = false
     @State private var notes: String = ""
     @State private var selectedSeasons: Set<Season> = []
+    @State private var selectedTags: [Tag] = []
     
     var body: some View {
         NavigationStack {
@@ -128,10 +129,12 @@ struct OutfitBuilderView: View {
                 }
             }
             .sheet(isPresented: $isShowingSaveSheet) {
+
                 SaveOutfitSheet(
                     placedItems: placedItems,
                     notes: $notes,
                     selectedSeasons: $selectedSeasons,
+                    selectedTags: $selectedTags,
                     onSave: saveOutfit
                 )
             }
@@ -168,6 +171,7 @@ struct OutfitBuilderView: View {
     private func loadOutfitData(_ outfit: Outfit) {
         notes = outfit.notes ?? ""
         selectedSeasons = outfit.seasons
+        selectedTags = outfit.tags ?? []
         
         // Restore Layout
         if let layoutData = outfit.layoutData,
@@ -246,6 +250,7 @@ struct OutfitBuilderView: View {
             outfit.notes = notes.isEmpty ? nil : notes
             outfit.canvasImageData = canvasData
             outfit.layoutData = layoutData
+            outfit.tags = selectedTags
         } else {
             // Create New
             let outfit = Outfit(
@@ -253,7 +258,8 @@ struct OutfitBuilderView: View {
                 seasons: selectedSeasons,
                 notes: notes.isEmpty ? nil : notes,
                 canvasImageData: canvasData,
-                layoutData: layoutData
+                layoutData: layoutData,
+                tags: selectedTags
             )
             modelContext.insert(outfit)
         }
@@ -354,6 +360,7 @@ struct SaveOutfitSheet: View {
     let placedItems: [PlacedItem]
     @Binding var notes: String
     @Binding var selectedSeasons: Set<Season>
+    @Binding var selectedTags: [Tag]
     let onSave: () -> Void
     @Environment(\.dismiss) private var dismiss
     
@@ -405,6 +412,19 @@ struct SaveOutfitSheet: View {
                     }, label: {
                         Text(selectedSeasons.isEmpty ? "Select Seasons" : selectedSeasons.map { $0.rawValue }.joined(separator: ", "))
                     })
+                }
+                
+                Section("Tags") {
+                    NavigationLink {
+                        TagSelectionView(selectedTags: $selectedTags)
+                    } label: {
+                        HStack {
+                            Text("Tags")
+                            Spacer()
+                            Text(selectedTags.isEmpty ? "None" : selectedTags.map(\.name).joined(separator: ", "))
+                                .foregroundStyle(selectedTags.isEmpty ? .secondary : .primary)
+                        }
+                    }
                 }
                 
                 Section("Notes") {

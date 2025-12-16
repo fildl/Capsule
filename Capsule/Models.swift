@@ -324,7 +324,8 @@ final class ClothingItem {
     var createdAt: Date = Date()
     
     // Relationships
-    @Relationship(inverse: \Outfit.items) var outfits: [Outfit]?
+    @Relationship(inverse: \DailyLog.items) var logs: [DailyLog]?
+    @Relationship var tags: [Tag]?
     
     // Computed Properties for Enums
     var mainCategory: MainCategory {
@@ -387,7 +388,8 @@ final class ClothingItem {
         drying: CareDrying? = nil,
         ironing: CareIroning? = nil,
         careNotes: String? = nil,
-        notes: String? = nil
+        notes: String? = nil,
+        tags: [Tag] = []
     ) {
         self.id = UUID()
         self.imageData = imageData
@@ -403,8 +405,6 @@ final class ClothingItem {
         self.purchaseLocation = purchaseLocation
         self.purchaseUrl = purchaseUrl
         self.purchaseDate = purchaseDate
-        self.purchaseUrl = purchaseUrl
-        self.purchaseDate = purchaseDate
         self.careWashingMethodRaw = washingMethod?.rawValue
         self.careTemperatureRaw = washingTemperature?.rawValue
         self.careBleachingRaw = bleaching?.rawValue
@@ -412,6 +412,7 @@ final class ClothingItem {
         self.careIroningRaw = ironing?.rawValue
         self.careNotes = careNotes
         self.notes = notes
+        self.tags = tags
     }
 }
 
@@ -437,6 +438,8 @@ final class Outfit {
     
     @Relationship var items: [ClothingItem]?
     @Relationship(inverse: \DailyLog.outfit) var logs: [DailyLog]?
+    @Relationship var tags: [Tag]?
+    
     var isArchived: Bool = false
     
     var seasons: Set<Season> {
@@ -444,13 +447,14 @@ final class Outfit {
         set { seasonsRaw = newValue.map { $0.rawValue } }
     }
     
-    init(items: [ClothingItem] = [], seasons: Set<Season> = [], notes: String? = nil, canvasImageData: Data? = nil, layoutData: Data? = nil) {
+    init(items: [ClothingItem] = [], seasons: Set<Season> = [], notes: String? = nil, canvasImageData: Data? = nil, layoutData: Data? = nil, tags: [Tag] = []) {
         self.id = UUID()
         self.items = items
         self.seasonsRaw = seasons.map { $0.rawValue }
         self.notes = notes
         self.canvasImageData = canvasImageData
         self.layoutData = layoutData
+        self.tags = tags
     }
 }
 
@@ -464,5 +468,20 @@ final class DailyLog {
         self.date = date
         self.outfit = outfit
         self.items = items
+    }
+}
+
+@Model
+final class Tag {
+    var id: UUID
+    var name: String
+    var createdAt: Date = Date()
+    
+    @Relationship(inverse: \ClothingItem.tags) var items: [ClothingItem]?
+    @Relationship(inverse: \Outfit.tags) var outfits: [Outfit]?
+    
+    init(name: String) {
+        self.id = UUID()
+        self.name = name
     }
 }

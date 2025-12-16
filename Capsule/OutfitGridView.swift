@@ -32,6 +32,7 @@ struct OutfitGridView: View {
     let filterCategory: MainCategory?
     let filterBrand: String?
     let filterColors: Set<ClothingColor>
+    let filterTags: Set<Tag>
     
     init(
         sort: [SortDescriptor<Outfit>],
@@ -39,17 +40,19 @@ struct OutfitGridView: View {
         filterSeason: Season?,
         filterCategory: MainCategory?,
         filterBrand: String?,
-        filterColors: Set<ClothingColor>
+        filterColors: Set<ClothingColor>,
+        filterTags: Set<Tag> = []
     ) {
         _outfits = Query(filter: predicate, sort: sort)
         self.filterSeason = filterSeason
         self.filterCategory = filterCategory
         self.filterBrand = filterBrand
         self.filterColors = filterColors
+        self.filterTags = filterTags
     }
     
     var filteredOutfits: [Outfit] {
-        if filterSeason == nil && filterCategory == nil && filterBrand == nil && filterColors.isEmpty {
+        if filterSeason == nil && filterCategory == nil && filterBrand == nil && filterColors.isEmpty && filterTags.isEmpty {
             return outfits
         }
         
@@ -78,6 +81,29 @@ struct OutfitGridView: View {
                 let outfitColors = Set((outfit.items ?? []).flatMap { $0.colors })
                 let requiredColors = Set(filterColors.map { $0.rawValue })
                 if !requiredColors.isSubset(of: outfitColors) {
+                    return false
+                }
+            }
+            
+            // Tag Check (Must contain ALL selected)
+            // Note: Currently Outfits have their OWN tags.
+            // Items ALSO have tags. 
+            // Logic: Does the OUTFIT have the tag? OR do ANY of the items have the tag?
+            // "I tag possono anche essere usati per filtrare capi e outfit." -> Filtering outfits by tag usually means searching for "Work" outfit. 
+            // But if I search "Summer" and an item is "Summer", should the outfit show?
+            // User said: "I tag possono essere creati dall'utente... pool condiviso... separare o no".
+            // Implementation: Filter by OUTFIT tags. If a shirt is tagged "Work", the outfit isn't necessarily "Work" unless the outfit itself is tagged.
+            // However, consistent with Color/Category/Brand logic above, we usually check items.
+            // But for TAGS, explicit tagging of the outfit is more powerful.
+            // Let's support BOTH: Outfit Match OR Item Match?
+            // "Tag shared pool". 
+            // Simple approach: Match OUTFIT tags. User specifically tags outfits.
+            // If I want to find outfits containing "Gucci" items (Brand), I search Brand.
+            // If I want to find "Work" outfits, I verify the outfit is tagged "Work".
+            
+            if !filterTags.isEmpty {
+                let outfitTagSet = Set(outfit.tags ?? [])
+                if !filterTags.isSubset(of: outfitTagSet) {
                     return false
                 }
             }

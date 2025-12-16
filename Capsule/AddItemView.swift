@@ -53,6 +53,7 @@ struct AddItemView: View {
     
     // MARK: - Collections
     @State private var selectedSeasons: Set<Season> = []
+    @State private var selectedTags: [Tag] = []
     
     var body: some View {
         NavigationStack {
@@ -309,6 +310,19 @@ struct AddItemView: View {
                                 .truncationMode(.tail)
                         }
                     })
+                    
+                    NavigationLink {
+                        TagSelectionView(selectedTags: $selectedTags)
+                    } label: {
+                        HStack {
+                            Text("Tags")
+                            Spacer()
+                            Text(selectedTags.map(\.name).joined(separator: ", "))
+                                .foregroundStyle(selectedTags.isEmpty ? .secondary : .primary)
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                        }
+                    }
                 }
                 
                 // Section 4: Purchase Info
@@ -434,6 +448,9 @@ struct AddItemView: View {
         .onAppear {
             if let item = itemToEdit {
                 loadItemData(item)
+            } else {
+                // Pre-populate tags if coming from a context that implies specific tags? 
+                // Currently no, but relevant for "Duplicate" feature later.
             }
         }
     }
@@ -496,6 +513,10 @@ struct AddItemView: View {
         purchaseStatus = item.purchaseStatus
         
         notes = item.notes ?? ""
+        notes = item.notes ?? ""
+        
+        // Tags
+        selectedTags = item.tags ?? []
     }
     
     private func saveItem() {
@@ -535,6 +556,7 @@ struct AddItemView: View {
             }
             
             item.notes = notes.isEmpty ? nil : notes
+            item.tags = selectedTags
             
         } else {
             // Create New
@@ -559,7 +581,8 @@ struct AddItemView: View {
                 drying: addCareDetails ? drying : nil,
                 ironing: addCareDetails ? ironing : nil,
                 careNotes: (addCareDetails && !careNotes.isEmpty) ? careNotes : nil,
-                notes: notes.isEmpty ? nil : notes
+                notes: notes.isEmpty ? nil : notes,
+                tags: selectedTags
             )
             
             modelContext.insert(newItem)

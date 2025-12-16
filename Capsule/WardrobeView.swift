@@ -10,6 +10,7 @@ import SwiftData
 
 struct WardrobeView: View {
     @Query private var allItems: [ClothingItem] // For metadata extraction for filters
+    @Query(sort: \Tag.name) private var allTags: [Tag]
     
     @State private var selectedSegment = 0
     @State private var isShowingAddItem = false
@@ -127,9 +128,14 @@ struct WardrobeView: View {
                                         filterCriteria.selectedSeason = nil
                                     }
                                 }
-                                ForEach(Array(filterCriteria.selectedColors).sorted(by: { $0.rawValue < $1.rawValue })) { color in
+                                ForEach(Array(filterCriteria.selectedColors).sorted(by: { $0.rawValue < $1.rawValue }), id: \.self) { color in
                                     FilterChip(title: color.rawValue, color: color.color) {
                                         filterCriteria.selectedColors.remove(color)
+                                    }
+                                }
+                                ForEach(Array(filterCriteria.selectedTags).sorted(by: { $0.name < $1.name })) { tag in
+                                    FilterChip(title: tag.name) {
+                                        filterCriteria.selectedTags.remove(tag)
                                     }
                                 }
                             }
@@ -143,7 +149,8 @@ struct WardrobeView: View {
                             sort: sortOption.itemSortDescriptors,
                             predicate: filterCriteria.itemPredicate,
                             filterSeason: filterCriteria.selectedSeason,
-                            filterColors: filterCriteria.selectedColors
+                            filterColors: filterCriteria.selectedColors,
+                            filterTags: filterCriteria.selectedTags
                         )
                     } else {
                         OutfitGridView(
@@ -196,6 +203,7 @@ struct WardrobeView: View {
                     filterCriteria: $filterCriteria,
                     availableBrands: availableBrands,
                     availableColors: availableColors,
+                    availableTags: allTags,
                     title: selectedSegment == 0 ? "Filter Items" : "Filter Outfits"
                 )
             }
@@ -242,9 +250,10 @@ struct FilterCriteria {
     var selectedBrand: String? = nil
     var selectedSeason: Season? = nil
     var selectedColors: Set<ClothingColor> = []
+    var selectedTags: Set<Tag> = []
     
     var hasActiveFilters: Bool {
-        selectedCategory != nil || selectedBrand != nil || selectedSeason != nil || !selectedColors.isEmpty
+        selectedCategory != nil || selectedBrand != nil || selectedSeason != nil || !selectedColors.isEmpty || !selectedTags.isEmpty
     }
     
     var itemPredicate: Predicate<ClothingItem> {
@@ -277,6 +286,7 @@ struct FilterSheet: View {
     @Binding var filterCriteria: FilterCriteria
     var availableBrands: [String]
     var availableColors: [ClothingColor]
+    var availableTags: [Tag]
     var title: String = "Filter Items"
     @Environment(\.dismiss) private var dismiss
     
@@ -345,6 +355,29 @@ struct FilterSheet: View {
                             .padding(.vertical, 4)
                         }
                     }
+                    // Tags
+                    if !availableTags.isEmpty {
+                        VStack(alignment: .leading) {
+                            Text("Tags")
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack {
+                                    ForEach(availableTags) { tag in
+                                        FilterChip(
+                                            title: tag.name, 
+                                            isSelected: filterCriteria.selectedTags.contains(tag)
+                                        ) {
+                                            if filterCriteria.selectedTags.contains(tag) {
+                                                filterCriteria.selectedTags.remove(tag)
+                                            } else {
+                                                filterCriteria.selectedTags.insert(tag)
+                                            }
+                                        }
+                                    }
+                                }
+                                .padding(.vertical, 4)
+                            }
+                        }
+                    }
                 }
                 
                 if filterCriteria.hasActiveFilters {
@@ -354,6 +387,7 @@ struct FilterSheet: View {
                             filterCriteria.selectedBrand = nil
                             filterCriteria.selectedSeason = nil
                             filterCriteria.selectedColors.removeAll()
+                            filterCriteria.selectedTags.removeAll()
                         }
                         .foregroundStyle(.red)
                     }
@@ -372,40 +406,66 @@ struct FilterSheet: View {
     }
 }
 
+extension FilterChip {
+    init(title: String, isSelected: Bool, action: @escaping () -> Void) {
+        self.title = title
+        self.color = nil
+        self.onRemove = action
+        self.isSelected = isSelected
+    }
+}
+
 struct FilterChip: View {
     let title: String
     var color: Color? = nil
+    var isSelected: Bool = true // Default is true for "active filters list" which are always selected/removable
     let onRemove: () -> Void
     
     var body: some View {
-        HStack(spacing: 6) {
-            if let color {
-                Circle()
-                    .fill(color)
-                    .frame(width: 14, height: 14)
-                    .overlay(Circle().stroke(Color.black.opacity(0.1), lineWidth: 1))
+        if isSelected {
+             // Style for "Active" and "Removable" (Standard Chip)
+             HStack(spacing: 6) {
+                if let color {
+                    Circle()
+                        .fill(color)
+                        .frame(width: 14, height: 14)
+                        .overlay(Circle().stroke(Color.black.opacity(0.1), lineWidth: 1))
+                }
+                
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                
+                Button(action: onRemove) {
+                    Image(systemName: "xmark")
+                        .font(.caption2)
+                        .fontWeight(.bold)
+                        .padding(4)
+                        .background(Color.black.opacity(0.1))
+                        .clipShape(Circle())
+                }
+                .buttonStyle(.plain)
             }
-            
-            Text(title)
-                .font(.subheadline)
-                .fontWeight(.medium)
-            
-            Button(action: onRemove) {
-                Image(systemName: "xmark")
-                    .font(.caption2)
-                    .fontWeight(.bold)
-                    .padding(4)
-                    .background(Color.black.opacity(0.1))
-                    .clipShape(Circle())
+            .padding(.leading, color != nil ? 8 : 12)
+            .padding(.trailing, 4)
+            .padding(.vertical, 6)
+            .background(Color.blue.opacity(0.1))
+            .foregroundStyle(.blue)
+            .clipShape(Capsule())
+        } else {
+            // Style for "Selectable" (In Filter Sheet)
+             Button(action: onRemove) {
+                Text(title)
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color(.systemGray5))
+                    .foregroundColor(.primary)
+                    .cornerRadius(20)
             }
             .buttonStyle(.plain)
         }
-        .padding(.leading, color != nil ? 8 : 12)
-        .padding(.trailing, 4)
-        .padding(.vertical, 6)
-        .background(Color.blue.opacity(0.1))
-        .foregroundStyle(.blue)
-        .clipShape(Capsule())
     }
 }
 
