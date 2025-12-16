@@ -22,6 +22,10 @@ struct SettingsView: View {
                         Label("Archive", systemImage: "archivebox")
                     }
                     
+                    NavigationLink(destination: TagManagementView()) {
+                        Label("Manage Tags", systemImage: "tag")
+                    }
+                    
                     NavigationLink(destination: DataSettingsView()) {
                         Label("Data Management", systemImage: "externaldrive")
                     }
