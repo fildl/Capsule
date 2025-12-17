@@ -118,17 +118,40 @@ struct ItemDetailView: View {
                         Divider()
                         VStack(alignment: .leading, spacing: 8) {
                             Text("SEASONS")
+                            .font(.caption)
+                            .fontWeight(.bold)
+                            .foregroundStyle(.secondary)
+                            
+                            FlowLayout(spacing: 8) {
+                                ForEach(sortedSeasons(item.seasons), id: \.self) { season in
+                                    Text(season)
+                                    .font(.callout)
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 6)
+                                    .background(Color(.systemGray6))
+                                    .cornerRadius(12)
+                                }
+                            }
+                        }
+                    }
+                    
+                    // Tags
+                    if let tags = item.tags, !tags.isEmpty {
+                        Divider()
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("TAGS")
                                 .font(.caption)
                                 .fontWeight(.bold)
                                 .foregroundStyle(.secondary)
                             
                             FlowLayout(spacing: 8) {
-                                ForEach(sortedSeasons(item.seasons), id: \.self) { season in
-                                    Text(season)
+                                ForEach(tags.sorted(by: { $0.name < $1.name })) { tag in
+                                    Text(tag.name)
                                         .font(.callout)
                                         .padding(.horizontal, 12)
                                         .padding(.vertical, 6)
-                                        .background(Color(.systemGray6))
+                                        .background(Color.blue.opacity(0.1))
+                                        .foregroundStyle(.blue)
                                         .cornerRadius(12)
                                 }
                             }
@@ -176,6 +199,9 @@ struct ItemDetailView: View {
                             }
                         }
                     }
+
+                    
+
                     
                     if item.careWashingMethodRaw != nil {
                         Divider()
@@ -221,6 +247,127 @@ struct ItemDetailView: View {
                         }
                     }
                     
+                    // Washing Frequency Status
+                    if let freqValue = item.washFrequencyValue, let freqUnit = item.washFrequencyUnit {
+                        Divider()
+                        
+                        VStack(alignment: .leading, spacing: 12) {
+                            Text("WASHING STATUS")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.secondary)
+                            
+                            // WEARS Logic
+                            if freqUnit == .wears {
+                                HStack(alignment: .center, spacing: 16) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        ProgressView(value: Double(min(item.wearsSinceWash, freqValue)), total: Double(freqValue))
+                                            .tint(item.wearsSinceWash >= freqValue ? .red : .blue)
+                                        
+                                        HStack {
+                                            Text("\(item.wearsSinceWash) / \(freqValue) wears")
+                                                .font(.caption)
+                                                .foregroundStyle(.secondary)
+                                            
+                                            Button {
+                                                item.wearsSinceWash += 1
+                                            } label: {
+                                                Image(systemName: "plus.circle.fill")
+                                                    .foregroundStyle(.blue)
+                                                    .font(.caption)
+                                            }
+                                            .buttonStyle(.plain)
+                                            
+                                            Spacer()
+                                            
+                                            if let lastWash = item.lastWashDate {
+                                                Text("Last: \(lastWash.formatted(date: .abbreviated, time: .omitted))")
+                                                    .font(.caption2)
+                                                    .foregroundStyle(.tertiary)
+                                            }
+                                        }
+                                    }
+                                    
+                                    Button {
+                                        withAnimation {
+                                            item.wearsSinceWash = 0
+                                            item.lastWashDate = Date()
+                                        }
+                                    } label: {
+                                        Label("Wash", systemImage: "washer")
+                                            .font(.caption)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(Capsule().stroke(Color.blue, lineWidth: 1))
+                                    }
+                                    .disabled(item.wearsSinceWash == 0)
+                                    .opacity(item.wearsSinceWash == 0 ? 0.5 : 1.0)
+                                }
+                            } else {
+                                // TIME Logic
+                                HStack(alignment: .center, spacing: 16) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        if let lastWash = item.lastWashDate {
+                                            // Calc Due Date
+                                            if let dueDate = getDueDate(lastWash: lastWash, value: freqValue, unit: freqUnit) {
+                                                let now = Date()
+                                                let isOverdue = now > dueDate
+                                                let daysUntil = Calendar.current.dateComponents([.day], from: now, to: dueDate).day ?? 0
+                                                
+                                                HStack {
+                                                    if isOverdue {
+                                                        Text("Overdue by \(abs(daysUntil)) days")
+                                                            .foregroundStyle(.red)
+                                                            .fontWeight(.bold)
+                                                    } else {
+                                                        Text("Due in \(daysUntil) days")
+                                                            .foregroundStyle(.primary)
+                                                    }
+                                                    Spacer()
+                                                }
+                                                .font(.subheadline)
+                                                
+                                                Text("Next: \(dueDate.formatted(date: .abbreviated, time: .omitted))")
+                                                    .font(.caption)
+                                                    .foregroundStyle(.secondary)
+                                            }
+                                        } else {
+                                            // Never washed -> Assume clean or "Unknown"
+                                            // Or maybe "Start Tracking" by washing?
+                                            // Or assume creation date? 
+                                            // For simplicity: "Mark as washed to start tracking"
+                                            Text("No wash recorded yet")
+                                                .font(.subheadline)
+                                                .foregroundStyle(.secondary)
+                                        }
+                                        
+                                        HStack {
+                                            Text("Frequency: Every \(freqValue) \(freqUnit.label(for: freqValue))")
+                                                .font(.caption2)
+                                                .foregroundStyle(.tertiary)
+                                            Spacer()
+                                        }
+                                    }
+                                    
+                                    Spacer()
+                                    
+                                    Button {
+                                        withAnimation {
+                                            item.wearsSinceWash = 0 // Reset wears too just in case
+                                            item.lastWashDate = Date()
+                                        }
+                                    } label: {
+                                        Label("Wash", systemImage: "washer")
+                                            .font(.caption)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(Capsule().stroke(Color.blue, lineWidth: 1))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    
                     // Notes
                     if let notes = item.notes, !notes.isEmpty {
                         Divider()
@@ -258,6 +405,21 @@ struct ItemDetailView: View {
         let all = Season.allCases
         let sorted = all.filter { seasons.contains($0) }
         return sorted.map { $0.rawValue }
+    }
+    
+    // Helper for Time Calculation
+    func getDueDate(lastWash: Date?, value: Int, unit: WashFrequencyUnit) -> Date? {
+        guard let lastWash else { return nil }
+        let calendar = Calendar.current
+        var component: Calendar.Component
+        switch unit {
+        case .wears: return nil // Not time based
+        case .days: component = .day
+        case .weeks: component = .weekOfYear
+        case .months: component = .month
+        case .years: component = .year
+        }
+        return calendar.date(byAdding: component, value: value, to: lastWash)
     }
 }
 

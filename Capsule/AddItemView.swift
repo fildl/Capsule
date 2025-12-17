@@ -49,6 +49,12 @@ struct AddItemView: View {
     @State private var ironing: CareIroning = .no
     @State private var careNotes: String = ""
     @State private var addCareDetails: Bool = false
+    
+    // Washing Frequency
+    @State private var trackWashingFrequency: Bool = false // "Track By" None/Some selector logic
+    @State private var washFrequencyValue: Int = 1
+    @State private var washFrequencyUnit: WashFrequencyUnit = .wears
+    
     @State private var notes: String = ""
     
     // MARK: - Collections
@@ -351,6 +357,10 @@ struct AddItemView: View {
                     }
                 }
                 
+
+                
+
+                
                 Section("Care Details") {
                     Toggle("Add Care Details", isOn: $addCareDetails.animation())
                     
@@ -386,8 +396,30 @@ struct AddItemView: View {
                                 Label(option.rawValue, systemImage: option.icon).tag(option)
                             }
                         }
-                        
                         TextField("Care Notes", text: $careNotes, axis: .vertical)
+                    }
+                }
+                
+                // Section 6: Washing Frequency
+                Section("Washing Frequency") {
+                    Toggle("Track Frequency", isOn: $trackWashingFrequency.animation())
+                    
+                    if trackWashingFrequency {
+                        HStack {
+                            Text("Every")
+                            TextField("Value", value: $washFrequencyValue, format: .number)
+                                .keyboardType(.numberPad)
+                                .frame(width: 50)
+                                .multilineTextAlignment(.center)
+                                .textFieldStyle(.roundedBorder)
+                            
+                            Picker("", selection: $washFrequencyUnit) {
+                                ForEach(WashFrequencyUnit.allCases) { unit in
+                                    Text(unit.label(for: washFrequencyValue)).tag(unit)
+                                }
+                            }
+                            .labelsHidden()
+                        }
                     }
                 }
                 
@@ -495,9 +527,28 @@ struct AddItemView: View {
             bleaching = item.bleaching
             drying = item.drying
             ironing = item.ironing
+            ironing = item.ironing
             careNotes = item.careNotes ?? ""
+            
+            if let val = item.washFrequencyValue, let unit = item.washFrequencyUnit {
+                trackWashingFrequency = true
+                washFrequencyValue = val
+                washFrequencyUnit = unit
+            } else {
+                trackWashingFrequency = false
+                washFrequencyValue = 1
+                washFrequencyUnit = .wears
+            }
         } else {
             addCareDetails = false
+            
+            if let val = item.washFrequencyValue, let unit = item.washFrequencyUnit {
+                trackWashingFrequency = true
+                washFrequencyValue = val
+                washFrequencyUnit = unit
+            } else {
+                trackWashingFrequency = false
+            }
         }
         
         // Purchase
@@ -545,6 +596,7 @@ struct AddItemView: View {
                 item.careBleachingRaw = bleaching.rawValue
                 item.careDryingRaw = drying.rawValue
                 item.careIroningRaw = ironing.rawValue
+                item.careIroningRaw = ironing.rawValue
                 item.careNotes = careNotes.isEmpty ? nil : careNotes
             } else {
                 item.careWashingMethodRaw = nil
@@ -557,6 +609,14 @@ struct AddItemView: View {
             
             item.notes = notes.isEmpty ? nil : notes
             item.tags = selectedTags
+            
+            if trackWashingFrequency {
+                item.washFrequencyValue = washFrequencyValue
+                item.washFrequencyUnit = washFrequencyUnit
+            } else {
+                item.washFrequencyValue = nil
+                item.washFrequencyUnitRaw = nil
+            }
             
         } else {
             // Create New
@@ -581,6 +641,8 @@ struct AddItemView: View {
                 drying: addCareDetails ? drying : nil,
                 ironing: addCareDetails ? ironing : nil,
                 careNotes: (addCareDetails && !careNotes.isEmpty) ? careNotes : nil,
+                washFrequencyValue: trackWashingFrequency ? washFrequencyValue : nil,
+                washFrequencyUnit: trackWashingFrequency ? washFrequencyUnit : nil,
                 notes: notes.isEmpty ? nil : notes,
                 tags: selectedTags
             )

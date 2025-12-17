@@ -166,6 +166,23 @@ enum CareIroning: String, Codable, CaseIterable, Identifiable {
     }
 }
 
+enum WashFrequencyUnit: String, Codable, CaseIterable, Identifiable {
+    case wears = "Wears"
+    case days = "Days"
+    case weeks = "Weeks"
+    case months = "Months"
+    case years = "Years"
+    
+    var id: String { rawValue }
+    
+    func label(for value: Int) -> String {
+        if value == 1 {
+            return String(rawValue.dropLast())
+        }
+        return rawValue
+    }
+}
+
 enum ClothingColor: String, CaseIterable, Identifiable {
     // Neutrals
     case black = "Black"
@@ -310,13 +327,18 @@ final class ClothingItem {
     var purchaseDate: Date?
     
     // Care
-    // Care
     var careWashingMethodRaw: String?
     var careTemperatureRaw: String?
     var careBleachingRaw: String?
     var careDryingRaw: String?
     var careIroningRaw: String?
     var careNotes: String?
+    
+    // Washing Frequency
+    var washFrequencyValue: Int?
+    var washFrequencyUnitRaw: String?
+    @Attribute var wearsSinceWash: Int = 0
+    var lastWashDate: Date?
     
     // Meta
     var notes: String?
@@ -368,6 +390,11 @@ final class ClothingItem {
         set { careIroningRaw = newValue.rawValue }
     }
     
+    var washFrequencyUnit: WashFrequencyUnit? {
+        get { washFrequencyUnitRaw != nil ? WashFrequencyUnit(rawValue: washFrequencyUnitRaw!) : nil }
+        set { washFrequencyUnitRaw = newValue?.rawValue }
+    }
+    
     init(
         imageData: Data? = nil,
         mainCategory: MainCategory = .top,
@@ -388,6 +415,8 @@ final class ClothingItem {
         drying: CareDrying? = nil,
         ironing: CareIroning? = nil,
         careNotes: String? = nil,
+        washFrequencyValue: Int? = nil,
+        washFrequencyUnit: WashFrequencyUnit? = nil,
         notes: String? = nil,
         tags: [Tag] = []
     ) {
@@ -411,6 +440,8 @@ final class ClothingItem {
         self.careDryingRaw = drying?.rawValue
         self.careIroningRaw = ironing?.rawValue
         self.careNotes = careNotes
+        self.washFrequencyValue = washFrequencyValue
+        self.washFrequencyUnitRaw = washFrequencyUnit?.rawValue
         self.notes = notes
         self.tags = tags
     }

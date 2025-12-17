@@ -118,6 +118,28 @@ struct OutfitDetailView: View {
                         }
                     }
                     
+                    // Tags
+                    if let tags = outfit.tags, !tags.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("TAGS")
+                                .font(.caption)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.secondary)
+                            
+                            FlowLayout(spacing: 8) {
+                                ForEach(tags.sorted(by: { $0.name < $1.name })) { tag in
+                                    Text(tag.name)
+                                        .font(.callout)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 6)
+                                        .background(Color.blue.opacity(0.1))
+                                        .foregroundStyle(.blue)
+                                        .cornerRadius(8)
+                                }
+                            }
+                        }
+                    }
+                    
                     // Notes
                     if let notes = outfit.notes, !notes.isEmpty {
                         VStack(alignment: .leading, spacing: 8) {
